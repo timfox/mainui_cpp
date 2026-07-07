@@ -219,9 +219,30 @@ bool CMenuBackgroundBitmap::LoadSteamBackground( bool gamedirOnly )
 
 	bool loaded = false;
 
+#if XASH_GAMECUBE
+	/* Disc build bakes a single 320x240 background so menu boot stays in MEM1. */
+	if( EngFuncs::FileExists( "resource/gc_menu/background.tga", gamedirOnly ))
+	{
+		bimage_t img;
+
+		img.hImage = EngFuncs::PIC_Load( "resource/gc_menu/background.tga", PIC_NOFLIP_TGA );
+		if( img.hImage )
+		{
+			img.coord.x = img.coord.y = 0;
+			img.size.w = EngFuncs::PIC_Width( img.hImage );
+			img.size.h = EngFuncs::PIC_Height( img.hImage );
+			s_SteamBackgroundImageSize.w = img.size.w;
+			s_SteamBackgroundImageSize.h = img.size.h;
+			s_SteamBackground.AddToTail( img );
+			Con_Printf( "Xash3D GameCube: retail menu steam background ready tiles=1\n" );
+			return true;
+		}
+	}
+#else
 	// try 25'th anniversary update background first
 	if( FBitSet( gMenu.m_gameinfo.flags, GFL_HD_BACKGROUND ))
 		afile = (char *)EngFuncs::COM_LoadFile( "resource/HD_BackgroundLayout.txt" );
+#endif
 
 	if( !afile )
 		afile = (char *)EngFuncs::COM_LoadFile( "resource/BackgroundLayout.txt" );
@@ -348,16 +369,31 @@ void CMenuBackgroundBitmap::LoadBackground()
 	s_bGameHasSteamBackground = false;
 	s_bGameHasWONBackground = false;
 
+#if XASH_GAMECUBE
+	/* Retail menu needs the Steam tile background even in low-memory builds.
+	 * The GX software upload path clamps UI textures to fit MEM1. */
+#else
 	if( uiStatic.lowmemory )
 		return;
+#endif
 
 	if( LoadSteamBackground( true ))
 	{
 		Con_DPrintf( "%s: found %s background in %s directory\n", __func__, "steam", "game" );
+#if XASH_GAMECUBE
+		Con_Printf( "Xash3D GameCube: retail menu steam background ready tiles=%d\n",
+			s_SteamBackground.Count() );
+#endif
 		s_bGameHasSteamBackground = true;
 	}
 	else if( LoadSteamBackground( false ))
+	{
 		Con_DPrintf( "%s: found %s background in %s directory\n", __func__, "steam", "base" );
+#if XASH_GAMECUBE
+		Con_Printf( "Xash3D GameCube: retail menu steam background ready tiles=%d\n",
+			s_SteamBackground.Count() );
+#endif
+	}
 
 	if( LoadWONBackground( true ))
 	{

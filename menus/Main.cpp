@@ -60,6 +60,9 @@ private:
 
 	CMenuAnimatedBanner animatedBanner;
 	CMenuMovieBanner movieBanner;
+#if XASH_GAMECUBE
+	CMenuBitmap	titleLogo;
+#endif
 
 	CMenuPicButton	console;
 	CMenuPicButton	resumeGame;
@@ -173,17 +176,6 @@ void CMenuMain::_Init( void )
 		bCustomGame = true;
 	else bCustomGame = false;
 
-	// console
-	console.SetNameAndStatus( L( "GameUI_Console" ), L( "Show console" ) );
-	console.iFlags |= QMF_NOTIFY;
-	console.SetPicture( PC_CONSOLE );
-	console.SetVisibility( gpGlobals->developer );
-	SET_EVENT_MULTI( console.onReleased,
-	{
-		UI_SetActiveMenu( false );
-		EngFuncs::KEY_SetDest( KEY_CONSOLE );
-	});
-
 	resumeGame.SetNameAndStatus( L( "GameUI_GameMenu_ResumeGame" ), L( "StringsList_188" ) );
 	resumeGame.SetPicture( PC_RESUME_GAME );
 	resumeGame.iFlags |= QMF_NOTIFY;
@@ -197,7 +189,12 @@ void CMenuMain::_Init( void )
 	newGame.SetNameAndStatus( L( "GameUI_NewGame" ), L( "StringsList_189" ) );
 	newGame.SetPicture( PC_NEW_GAME );
 	newGame.iFlags |= QMF_NOTIFY;
+#if XASH_GAMECUBE
+	/* Skill menu costs UI memory we need for the BSP; start medium directly. */
+	newGame.onReleased.SetCommand( false, "skill 2;gc_playstart\n" );
+#else
 	newGame.onReleased = UI_NewGame_Menu;
+#endif
 
 	hazardCourse.SetNameAndStatus( L( "GameUI_TrainingRoom" ), L( "StringsList_190" ) );
 	hazardCourse.SetPicture( PC_HAZARD_COURSE );
@@ -205,27 +202,12 @@ void CMenuMain::_Init( void )
 	hazardCourse.onReleasedClActive = VoidCb( &CMenuMain::HazardCourseDialogCb );
 	hazardCourse.onReleased = VoidCb( &CMenuMain::HazardCourseCb );
 
-	multiPlayer.SetNameAndStatus( L( "GameUI_Multiplayer" ), L( "StringsList_198" ) );
-	multiPlayer.SetPicture( PC_MULTIPLAYER );
-	multiPlayer.iFlags |= QMF_NOTIFY;
-	multiPlayer.onReleased = UI_MultiPlayer_Menu;
-
 	configuration.SetNameAndStatus( L( "GameUI_Options" ), L( "StringsList_193" ) );
 	configuration.SetPicture( PC_CONFIG );
 	configuration.iFlags |= QMF_NOTIFY;
 	configuration.onReleased = UI_Options_Menu;
 
 	saveRestore.iFlags |= QMF_NOTIFY;
-
-	customGame.SetNameAndStatus( L( "GameUI_ChangeGame" ), L( "StringsList_530" ) );
-	customGame.SetPicture( PC_CUSTOM_GAME );
-	customGame.iFlags |= QMF_NOTIFY;
-	customGame.onReleased = UI_CustomGame_Menu;
-
-	previews.SetNameAndStatus( L( "Previews" ), L( "StringsList_400" ) );
-	previews.SetPicture( PC_PREVIEWS );
-	previews.iFlags |= QMF_NOTIFY;
-	SET_EVENT( previews.onReleased, EngFuncs::ShellExecute( MenuStrings[ IDS_MEDIA_PREVIEWURL ], NULL, false ) );
 
 	quit.SetNameAndStatus( L( "GameUI_GameMenu_Quit" ), L( "GameUI_QuitConfirmationText" ) );
 	quit.SetPicture( PC_QUIT );
@@ -245,19 +227,10 @@ void CMenuMain::_Init( void )
 	if ( gMenu.m_gameinfo.gamemode == GAME_MULTIPLAYER_ONLY || gMenu.m_gameinfo.startmap[0] == 0 )
 		newGame.SetGrayed( true );
 
-	if ( gMenu.m_gameinfo.gamemode == GAME_SINGLEPLAYER_ONLY )
-		multiPlayer.SetGrayed( true );
-
 	if ( gMenu.m_gameinfo.gamemode == GAME_MULTIPLAYER_ONLY )
 	{
 		saveRestore.SetGrayed( true );
 		hazardCourse.SetGrayed( true );
-	}
-
-	// too short execute string - not a real command
-	if( strlen( MenuStrings[IDS_MEDIA_PREVIEWURL] ) <= 3 )
-	{
-		previews.SetGrayed( true );
 	}
 
 	// server.dll needs for reading savefiles or startup newgame
@@ -268,6 +241,14 @@ void CMenuMain::_Init( void )
 		newGame.SetGrayed( true );
 	}
 
+#if XASH_GAMECUBE
+	/* Baked logo from disc build (resource/gc_menu/logo.tga). Steam-bg path
+	 * disables logo.avi, so draw a static title mark instead. */
+	titleLogo.SetPicture( "resource/gc_menu/logo.tga" );
+	titleLogo.iFlags = QMF_INACTIVE | QMF_DISABLESCAILING;
+	titleLogo.SetRenderMode( QM_DRAWTRANS );
+	AddItem( titleLogo );
+#else
 	if( FBitSet( gMenu.m_gameinfo.flags, GFL_ANIMATED_TITLE ))
 	{
 		if( animatedBanner.TryLoad())
@@ -277,29 +258,19 @@ void CMenuMain::_Init( void )
 	{
 		AddItem( movieBanner );
 	}
+#endif
 
 	dialog.Link( this );
 
 	AddItem( banner );
-	AddItem( console );
 	AddItem( disconnect );
 	AddItem( resumeGame );
 	AddItem( newGame );
-
-	if ( bTrainMap )
+	if( bTrainMap )
 		AddItem( hazardCourse );
-
-	AddItem( configuration );
 	AddItem( saveRestore );
-	AddItem( multiPlayer );
-
-	if ( bCustomGame )
-		AddItem( customGame );
-
-	AddItem( previews );
+	AddItem( configuration );
 	AddItem( quit );
-	AddItem( minimizeBtn );
-	AddItem( quitButton );
 }
 
 /*
@@ -310,80 +281,95 @@ UI_Main_Init
 void CMenuMain::VidInit( bool connected )
 {
 	int hoffset = ( 70 / 640.0 ) * 1024.0;
-
-	// in original menu Previews is located at specific point
-	int previews_voffset = ( 404 / 480.0 ) * 768.0;
-
-	// no visible console button gap
+	int retail_top = ( 249 / 480.0 ) * 768.0;
 	int ygap = (( 404 - 373 ) / 480.0 ) * 768.0;
-
-	// statically positioned items
-	minimizeBtn.SetRect( uiStatic.width - 72, 13, 32, 32 );
-	quitButton.SetRect( uiStatic.width - 36, 13, 32, 32 );
-
-	previews.SetCoord( hoffset, previews_voffset );
-	quit.SetCoord( hoffset, previews_voffset + ygap );
-
-	// let's start calculating positions
-	int yoffset = previews_voffset - ygap;
-
-	if( bCustomGame )
-	{
-		customGame.SetCoord( hoffset, yoffset );
-		yoffset -= ygap;
-	}
-
-	multiPlayer.SetCoord( hoffset, yoffset );
-	yoffset -= ygap;
+#if XASH_GAMECUBE
+	/* Keep rows from overlapping the taller low-memory text labels. */
+	if( ygap < 56 )
+		ygap = 56;
+#endif
 
 	bool single = gpGlobals->maxClients < 2;
 
-	saveRestore.SetCoord( hoffset, yoffset );
-	yoffset -= ygap;
-
-	configuration.SetCoord( hoffset, yoffset );
-	yoffset -= ygap;
-
-	if( bTrainMap )
-	{
-		hazardCourse.SetCoord( hoffset, yoffset );
-		yoffset -= ygap;
-	}
-
-	newGame.SetCoord( hoffset, yoffset );
-	yoffset -= ygap;
-
 	if( connected )
 	{
+		int yoffset = retail_top;
+
 		resumeGame.SetCoord( hoffset, yoffset );
-		yoffset -= ygap;
+		yoffset += ygap;
 
-		if( !single )
+		if( single )
 		{
+			saveRestore.SetNameAndStatus( L( "Save\\Load Game" ), L( "StringsList_192" ) );
+			saveRestore.SetPicture( PC_SAVE_LOAD_GAME );
+			saveRestore.onReleased = UI_SaveLoad_Menu;
+			disconnect.SetNameAndStatus( L( "GameUI_GameMenu_LeaveGame" ), L( "Return to the main menu." ) );
+
+			newGame.SetCoord( hoffset, yoffset );
+			yoffset += ygap;
+
+			saveRestore.SetCoord( hoffset, yoffset );
+			yoffset += ygap;
+
+			configuration.SetCoord( hoffset, yoffset );
+			yoffset += ygap;
+
 			disconnect.SetCoord( hoffset, yoffset );
-			yoffset -= ygap;
+			yoffset += ygap;
 		}
-	}
+		else
+		{
+			disconnect.SetNameAndStatus( L( "GameUI_GameMenu_Disconnect" ), L( "Disconnect from the current server." ) );
+			disconnect.SetCoord( hoffset, yoffset );
+			yoffset += ygap;
 
-	console.SetCoord( hoffset, yoffset );
-	yoffset -= ygap;
-
-	// now figure out what's visible
-	resumeGame.SetVisibility( connected );
-	disconnect.SetVisibility( connected && !single );
-
-	if( connected && single )
-	{
-		saveRestore.SetNameAndStatus( L( "Save\\Load Game" ), L( "StringsList_192" ) );
-		saveRestore.SetPicture( PC_SAVE_LOAD_GAME );
-		saveRestore.onReleased = UI_SaveLoad_Menu;
+			configuration.SetCoord( hoffset, yoffset );
+			yoffset += ygap;
+		}
 	}
 	else
 	{
-		saveRestore.SetNameAndStatus( L( "GameUI_LoadGame" ), L( "StringsList_191" ) );
+		int yoffset = retail_top;
+
+		saveRestore.SetNameAndStatus( L( "GameUI_GameMenu_LoadGame" ), L( "Load a previously saved game." ) );
 		saveRestore.SetPicture( PC_LOAD_GAME );
 		saveRestore.onReleased = UI_LoadGame_Menu;
+		newGame.SetNameAndStatus( L( "GameUI_GameMenu_NewGame" ), L( "Start a new single player game." ) );
+		configuration.SetNameAndStatus( L( "GameUI_GameMenu_Options" ), L( "Change game settings, configure controls." ) );
+		quit.SetNameAndStatus( L( "GameUI_GameMenu_Quit" ), L( "Quit playing Half-Life." ) );
+
+		newGame.SetCoord( hoffset, yoffset );
+		yoffset += ygap;
+
+		if( bTrainMap )
+		{
+			hazardCourse.SetCoord( hoffset, yoffset );
+			yoffset += ygap;
+		}
+
+		saveRestore.SetCoord( hoffset, yoffset );
+		yoffset += ygap;
+
+		configuration.SetCoord( hoffset, yoffset );
+		yoffset += ygap;
+
+		quit.SetCoord( hoffset, yoffset );
 	}
+
+#if XASH_GAMECUBE
+	/* Centered title logo above the button column (retail-ish placement). */
+	titleLogo.SetCoord( ( 1024 - 512 ) / 2, 40 );
+	titleLogo.size = Size( 512, 56 );
+#endif
+
+	// now figure out what's visible
+	resumeGame.SetVisibility( connected );
+	disconnect.SetVisibility( connected );
+	saveRestore.SetVisibility( !connected || single );
+	configuration.SetVisibility( true );
+	quit.SetVisibility( !connected );
+	if( bTrainMap )
+		hazardCourse.SetVisibility( !connected );
 }
 
 void CMenuMain::_VidInit()
@@ -393,17 +379,6 @@ void CMenuMain::_VidInit()
 
 void CMenuMain::Think()
 {
-	if( gpGlobals->developer )
-	{
-		if( !console.IsVisible( ))
-			console.Show();
-	}
-	else
-	{
-		if( console.IsVisible( ))
-			console.Hide();
-	}
-
 	CMenuFramework::Think();
 }
 

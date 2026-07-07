@@ -326,6 +326,15 @@ static void Localize_AddToDictionary( const char *name, const char *lang )
 
 	if( !pFileBuf )
 	{
+		if( !strcmp( name, "mainui" ))
+		{
+			snprintf( filename, sizeof( filename ), "resource/gameui_%s.txt", lang );
+			pFileBuf = reinterpret_cast<char*>( EngFuncs::COM_LoadFile( filename, &buflen ));
+		}
+	}
+
+	if( !pFileBuf )
+	{
 		Con_Printf( "Localize_AddToDict( %s ): couldn't open file. Some strings will not be localized!.\n", filename );
 		return;
 	}

@@ -354,27 +354,42 @@ void CMenuPicButton::Draw( )
 	else
 	{
 		uint textflags = ETF_NOSIZELIMIT | ETF_FORCECOL;
+		int ch = m_scChSize;
+#if XASH_GAMECUBE
+		/* Match the readable floor used when baking the default menu font. */
+		ch = Q_max( ch, 14 );
+		if( szName && szName[0] )
+		{
+			static bool s_logged_text;
+			if( !s_logged_text )
+			{
+				Con_Printf( "Xash3D GameCube: retail menu button text ready ch=%d color=0x%08X name=%s\n",
+					ch, (unsigned int)colorBase, szName );
+				s_logged_text = true;
+			}
+		}
+#endif
 
 		SetBits( textflags, (iFlags & QMF_DROPSHADOW) ? ETF_SHADOW : 0 );
 
 		if( iFlags & QMF_GRAYED )
 		{
-			UI_DrawString( font, m_scPos, m_scSize, szName, uiColorDkGrey, m_scChSize, eTextAlignment, textflags );
+			UI_DrawString( font, m_scPos, m_scSize, szName, uiColorDkGrey, ch, eTextAlignment, textflags );
 		}
 		else if( this != m_pParent->ItemAtCursor() )
 		{
-			UI_DrawString( font, m_scPos, m_scSize, szName, colorBase, m_scChSize, eTextAlignment, textflags );
+			UI_DrawString( font, m_scPos, m_scSize, szName, colorBase, ch, eTextAlignment, textflags );
 		}
 		else if( eFocusAnimation == QM_HIGHLIGHTIFFOCUS )
 		{
-			UI_DrawString( font, m_scPos, m_scSize, szName, colorFocus, m_scChSize, eTextAlignment, textflags );
+			UI_DrawString( font, m_scPos, m_scSize, szName, colorFocus, ch, eTextAlignment, textflags );
 		}
 		else if( eFocusAnimation == QM_PULSEIFFOCUS )
 		{
 			float pulsar = 0.5f + 0.5f * sin( (float)uiStatic.realTime / UI_PULSE_DIVISOR );
 
 			UI_DrawString( font, m_scPos, m_scSize, szName,
-				InterpColor( colorBase, colorFocus, pulsar ), m_scChSize, eTextAlignment, textflags );
+				InterpColor( colorBase, colorFocus, pulsar ), ch, eTextAlignment, textflags );
 		}
 	}
 

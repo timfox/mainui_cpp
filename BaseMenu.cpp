@@ -546,6 +546,12 @@ UI_StartBackGroundMap
 */
 bool UI_StartBackGroundMap( void )
 {
+#if XASH_GAMECUBE
+	/* Retail menu uses the baked resource/gc_menu background. Loading a full
+	 * background BSP on MEM1 is too expensive and blocks menu drawing while
+	 * cl_background is set. */
+	return false;
+#else
 	static int check_dll;
 
 	// the list is empty
@@ -580,6 +586,7 @@ bool UI_StartBackGroundMap( void )
 	EngFuncs::ClientCmd( false, cmd );
 
 	return true;
+#endif
 }
 
 // =====================================================================
@@ -884,7 +891,14 @@ void UI_Precache( void )
 
 	// all menu buttons have the same view sizes
 	if( uiStatic.btns.GetWidth() == 0 || uiStatic.btns.GetHeight() == 0 )
+	{
 		uiStatic.buttons_draw_size = Size( UI_BUTTONS_WIDTH, UI_BUTTONS_HEIGHT );
+#if XASH_GAMECUBE
+		/* Room for the readable 14px menu font at 320x240. */
+		if( uiStatic.buttons_draw_size.h < 56 )
+			uiStatic.buttons_draw_size.h = 56;
+#endif
+	}
 	else
 		uiStatic.buttons_draw_size = Size( uiStatic.btns.GetWidth() * 1024 / 640, uiStatic.btns.GetHeight() * 768 / 480 );
 
@@ -919,7 +933,9 @@ void UI_ApplyCustomColors( void )
 	if( !afile )
 	{
 		// not error, not warning, just notify
+#if !XASH_GAMECUBE
 		Con_Printf( "UI_ApplyCustomColors: colors.lst not found\n" );
+#endif
 		return;
 	}
 
@@ -1025,6 +1041,10 @@ UI_VidInit
 int UI_VidInit( void )
 {
 	static bool calledOnce = false;
+#if XASH_GAMECUBE
+	Con_Printf( "Xash3D GameCube: mainui vidinit begin calledOnce=%d textInput=%d\n",
+		calledOnce ? 1 : 0, uiStatic.textInput ? 1 : 0 );
+#endif
 	if( uiStatic.textInput )
 	{
 		uiStatic.menu.InputMethodResized();
@@ -1061,19 +1081,34 @@ int UI_VidInit( void )
 
 	// trying to load chapterbackgrounds.txt
 	UI_LoadBackgroundMapList ();
+#if XASH_GAMECUBE
+	Con_Printf( "Xash3D GameCube: mainui vidinit backgrounds listed\n" );
+#endif
 
 	// VidInit FontManager
 	g_FontMgr->VidInit();
+#if XASH_GAMECUBE
+	Con_Printf( "Xash3D GameCube: mainui vidinit fonts ready\n" );
+#endif
 
 	// load button sounds
 	UI_LoadSounds();
+#if XASH_GAMECUBE
+	Con_Printf( "Xash3D GameCube: mainui vidinit sounds ready\n" );
+#endif
 
 	// init global background, root windows don't have background anymore
 	if( !uiStatic.background )
 		uiStatic.background = new CMenuBackgroundBitmap();
 	uiStatic.background->VidInit();
+#if XASH_GAMECUBE
+	Con_Printf( "Xash3D GameCube: mainui vidinit background ready\n" );
+#endif
 
 	uiStatic.menu.VidInit( calledOnce );
+#if XASH_GAMECUBE
+	Con_Printf( "Xash3D GameCube: mainui vidinit menu ready\n" );
+#endif
 
 	if( !calledOnce ) calledOnce = true;
 

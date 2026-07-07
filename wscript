@@ -29,7 +29,7 @@ def configure(conf):
 	if not conf.check_std('cxx11'):
 		conf.define('MY_COMPILER_SUCKS', 1)
 
-	if conf.env.DEST_OS in ['android', 'darwin', 'nswitch', 'psvita', 'emscripten'] or conf.env.MAGX:
+	if conf.env.DEST_OS in ['android', 'darwin', 'nswitch', 'psvita', 'emscripten', 'gamecube'] or conf.env.MAGX:
 		conf.options.USE_STBTT = True
 
 	conf.define('MAINUI_USE_CUSTOM_FONT_RENDER', 1)
@@ -76,11 +76,21 @@ def build(bld):
 		'sdk_includes/pm_shared'
 	]
 
-	bld.shlib(
-		source   = source,
-		target   = 'menu',
-		includes = includes,
-		use      = 'werror FT2 GDI32 USER32',
-		install_path = bld.env.LIBDIR,
-		cmake_skip = True
-	)
+	if bld.env.DEST_OS == 'gamecube':
+		bld.stlib(
+			source = source + bld.path.ant_glob('gamecube_menu_export.cpp'),
+			target = 'menu',
+			includes = includes + ['../../engine/platform/gamecube'],
+			use = 'engine_includes public werror M',
+			install_path = bld.env.LIBDIR,
+			cmake_skip = True
+		)
+	else:
+		bld.shlib(
+			source   = source,
+			target   = 'menu',
+			includes = includes,
+			use      = 'werror FT2 GDI32 USER32',
+			install_path = bld.env.LIBDIR,
+			cmake_skip = True
+		)
