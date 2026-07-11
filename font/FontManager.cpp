@@ -513,7 +513,11 @@ HFont CFontBuilder::Create()
 		}
 	}
 
-#if defined(MAINUI_USE_FREETYPE)
+#if XASH_GAMECUBE
+	/* FreeType/STB TTF create stalls Dolphin New Game boots before gc_playstart.
+	 * Bitmap fonts are enough for the GC menu and keep MEM1 free for the map. */
+	font = new CBitmapFont();
+#elif defined(MAINUI_USE_FREETYPE)
 	font = new CFreeTypeFont();
 #elif defined(MAINUI_USE_STB)
 	font = new CStbFont();
@@ -529,7 +533,13 @@ HFont CFontBuilder::Create()
 		m_szName, m_iTall, m_iWeight, m_iBlur, m_iOutlineSize, m_iFlags );
 #endif
 
-	if( !font->Create( m_szName, m_iTall, m_iWeight, m_iBlur, m_fBrighten, m_iOutlineSize, m_iScanlineOffset, m_fScanlineScale, m_iFlags ) )
+	if( !font->Create(
+#if XASH_GAMECUBE
+		"Bitmap Font",
+#else
+		m_szName,
+#endif
+		m_iTall, m_iWeight, m_iBlur, m_fBrighten, m_iOutlineSize, m_iScanlineOffset, m_fScanlineScale, m_iFlags ) )
 	{
 #if XASH_GAMECUBE
 		Con_Printf( "Xash3D GameCube: mainui font create fallback name=%s tall=%d weight=%d\n",
