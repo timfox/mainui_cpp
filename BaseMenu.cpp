@@ -1072,7 +1072,11 @@ UI_VidInit
 int UI_VidInit( void )
 {
 	static bool calledOnce = false;
+	static bool gcProbeAutoOpened = false;
 #if XASH_GAMECUBE
+	gcProbeAutoOpened = false;
+	EngFuncs::CvarSetValue( "gc_menu_ready", 0.0f );
+	Con_Printf( "Xash3D GameCube: gc_menu_ready set 0\n" );
 	Con_Printf( "Xash3D GameCube: mainui vidinit begin calledOnce=%d textInput=%d\n",
 		calledOnce ? 1 : 0, uiStatic.textInput ? 1 : 0 );
 #endif
@@ -1139,6 +1143,14 @@ int UI_VidInit( void )
 	uiStatic.menu.VidInit( calledOnce );
 #if XASH_GAMECUBE
 	Con_Printf( "Xash3D GameCube: mainui vidinit menu ready\n" );
+	EngFuncs::CvarSetValue( "gc_menu_ready", 1.0f );
+	Con_Printf( "Xash3D GameCube: gc_menu_ready set 1\n" );
+	if( !gcProbeAutoOpened && EngFuncs::GetCvarFloat( "gc_menu_probe_auto" ) > 0.0f )
+	{
+		gcProbeAutoOpened = true;
+		Con_Printf( "Xash3D GameCube: retail probe auto-open options\n" );
+		UI_Options_Menu();
+	}
 #endif
 
 	if( !calledOnce ) calledOnce = true;
