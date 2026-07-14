@@ -220,24 +220,11 @@ bool CMenuBackgroundBitmap::LoadSteamBackground( bool gamedirOnly )
 	bool loaded = false;
 
 #if XASH_GAMECUBE
-	/* Disc build bakes a single 320x240 background so menu boot stays in MEM1. */
-	if( EngFuncs::FileExists( "resource/gc_menu/background.tga", gamedirOnly ))
-	{
-		bimage_t img;
-
-		img.hImage = EngFuncs::PIC_Load( "resource/gc_menu/background.tga", PIC_NOFLIP_TGA );
-		if( img.hImage )
-		{
-			img.coord.x = img.coord.y = 0;
-			img.size.w = EngFuncs::PIC_Width( img.hImage );
-			img.size.h = EngFuncs::PIC_Height( img.hImage );
-			s_SteamBackgroundImageSize.w = img.size.w;
-			s_SteamBackgroundImageSize.h = img.size.h;
-			s_SteamBackground.AddToTail( img );
-			Con_Printf( "Xash3D GameCube: retail menu steam background ready tiles=1\n" );
-			return true;
-		}
-	}
+	/* First retail menu bring-up prioritizes input/UI over decorative backdrop.
+	 * Loading even the reduced baked TGA still consumes transient MEM1 we do not
+	 * yet have after engine startup, so fall back to DRAW_COLOR for now. */
+	(void)gamedirOnly;
+	return false;
 #else
 	// try 25'th anniversary update background first
 	if( FBitSet( gMenu.m_gameinfo.flags, GFL_HD_BACKGROUND ))
@@ -394,6 +381,12 @@ void CMenuBackgroundBitmap::LoadBackground()
 			s_SteamBackground.Count() );
 #endif
 	}
+#if XASH_GAMECUBE
+	else
+	{
+		Con_Printf( "Xash3D GameCube: retail menu steam background ready tiles=0 fallback=color\n" );
+	}
+#endif
 
 	if( LoadWONBackground( true ))
 	{

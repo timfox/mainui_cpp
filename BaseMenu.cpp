@@ -41,6 +41,20 @@ cvar_t		*ui_logohorizontal;
 uiStatic_t	uiStatic;
 static CMenuEntry	*s_pEntries = NULL;
 
+#if XASH_GAMECUBE
+static qboolean UI_GCShouldPrecacheMenuEntry( const char *cmd )
+{
+	if( !cmd )
+		return false;
+
+	/* Keep retail first-boot focused on the interactive top-level menu.
+	 * Secondary dialogs stay lazy and allocate only when explicitly opened. */
+	return !strcmp( cmd, "menu_connectionprogress" ) ||
+		!strcmp( cmd, "menu_connectionwarning" ) ||
+		!strcmp( cmd, "menu_main" );
+}
+#endif
+
 const char	*uiSoundOldPrefix	= "media/";
 const char	*uiSoundNewPrefix	= "sound/common/";
 const char	*uiSounds[] = {
@@ -884,10 +898,15 @@ void UI_Precache( void )
 	EngFuncs::PIC_Load( UI_UPARROWFOCUS );
 	EngFuncs::PIC_Load( UI_DOWNARROW );
 	EngFuncs::PIC_Load( UI_DOWNARROWFOCUS );
+#if !XASH_GAMECUBE
 	EngFuncs::PIC_Load( "gfx/shell/splash" );
+#endif
 
 	// load all menu buttons
 	uiStatic.btns.LoadBmpButtons();
+#if XASH_GAMECUBE
+	Con_Printf( "Xash3D GameCube: mainui precache core assets ready\n" );
+#endif
 
 	// all menu buttons have the same view sizes
 	if( uiStatic.btns.GetWidth() == 0 || uiStatic.btns.GetHeight() == 0 )
@@ -905,7 +924,19 @@ void UI_Precache( void )
 	for( CMenuEntry *entry = s_pEntries; entry; entry = entry->m_pNext )
 	{
 		if( entry->m_pfnPrecache )
+		{
+#if XASH_GAMECUBE
+			if( !UI_GCShouldPrecacheMenuEntry( entry->m_szCommand ))
+				continue;
+			Con_Printf( "Xash3D GameCube: mainui precache entry begin %s\n",
+				entry->m_szCommand ? entry->m_szCommand : "<null>" );
+#endif
 			entry->m_pfnPrecache();
+#if XASH_GAMECUBE
+			Con_Printf( "Xash3D GameCube: mainui precache entry ready %s\n",
+				entry->m_szCommand ? entry->m_szCommand : "<null>" );
+#endif
+		}
 	}
 }
 
@@ -1209,6 +1240,11 @@ void UI_Init( void )
 	gMenu.m_gameinfo = *gi;
 
 	uiStatic.renderPicbuttonText = gMenu.m_gameinfo.flags & GFL_RENDER_PICBUTTON_TEXT;
+#if XASH_GAMECUBE
+	uiStatic.lowmemory = 1;
+	uiStatic.renderPicbuttonText = true;
+	Con_Printf( "Xash3D GameCube: mainui forcing low-memory text buttons\n" );
+#endif
 
 	// trying to load colors.lst
 	UI_ApplyCustomColors ();

@@ -44,6 +44,9 @@ bool CBitmapFont::Create(const char *name, int tall, int weight, int blur, float
 	m_fScanlineScale = scanlineScale;
 	m_iAscent = 0;
 	m_iMaxCharWidth = 0;
+#if XASH_GAMECUBE
+	m_iHeight = m_iTall = MAINUI_CONSOLE_FONT_HEIGHT;
+#else
 #ifndef MAINUI_FORCE_CONSOLE_BITMAP_FONT
 	if( tall > UI_CONSOLE_CHAR_HEIGHT * uiStatic.scaleY )
 	{
@@ -54,6 +57,7 @@ bool CBitmapFont::Create(const char *name, int tall, int weight, int blur, float
 	else
 #endif
 		m_iHeight = m_iTall = MAINUI_CONSOLE_FONT_HEIGHT;
+#endif
 	int a, c;
 	GetCharABCWidths( '.', a, m_iEllipsisWide, c );
 	m_iEllipsisWide *= 3;
