@@ -727,6 +727,26 @@ void UI_KeyEvent( int key, int down )
 	clientActive = uiStatic.client.IsActive();
 	menuActive = uiStatic.menu.IsActive();
 
+#if XASH_GAMECUBE
+	if( menuActive && down )
+	{
+		switch( key )
+		{
+		case K_DPAD_DOWN:
+			Con_Printf( "Xash3D GameCube: mainui key down dpad_down\n" );
+			break;
+		case K_A_BUTTON:
+			Con_Printf( "Xash3D GameCube: mainui key down confirm\n" );
+			break;
+		case K_B_BUTTON:
+			Con_Printf( "Xash3D GameCube: mainui key down back\n" );
+			break;
+		default:
+			break;
+		}
+	}
+#endif
+
 	if( clientActive && !menuActive )
 		down ? uiStatic.client.KeyDownEvent( key ) :
 			uiStatic.client.KeyUpEvent( key );
