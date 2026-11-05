@@ -475,6 +475,7 @@ void UI_ServerBrowser_Menu( void )
 
 void UI_InternetGames_Menu( void )
 {
+	menu_internetgames_Precache();
 	menu_internetgames->SetLANOnly( false );
 
 	UI_ServerBrowser_Menu();
@@ -482,6 +483,7 @@ void UI_InternetGames_Menu( void )
 
 void UI_LanGame_Menu( void )
 {
+	menu_internetgames_Precache();
 	menu_internetgames->SetLANOnly( true );
 
 	UI_ServerBrowser_Menu();

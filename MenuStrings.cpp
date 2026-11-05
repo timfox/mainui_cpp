@@ -30,7 +30,9 @@ GNU General Public License for more details.
 #define EMPTY_STRINGS_50 EMPTY_STRINGS_20, EMPTY_STRINGS_20, EMPTY_STRINGS_10
 #define EMPTY_STRINGS_100 EMPTY_STRINGS_50, EMPTY_STRINGS_50
 
-static CUtlHashMap<const char *, const char *> hashed_cmds;
+// Cover the built-in menu table without reserving the large capacity used by
+// the desktop localization path; GameCube may still grow this for translations.
+static CUtlHashMap<const char *, const char *> hashed_cmds( 256 );
 
 const char *MenuStrings[IDS_LAST] =
 {
@@ -322,15 +324,32 @@ static void Localize_AddToDictionary( const char *name, const char *lang )
 
 	snprintf( filename, sizeof( filename ), "resource/%s_%s.txt", name, lang );
 
+#if XASH_GAMECUBE
+	/* gameui_english.txt is 26,557 bytes. After the intro AVI releases its
+	 * 150 KiB GX buffer, MEM1 can still be too fragmented/tight to load it
+	 * (FS_LoadFileFromArchive OOM), which delayed/broke menu strings. The GC
+	 * main menu uses hardcoded English labels + builtins; skip the bulky
+	 * GameUI dictionary and never fall mainui back onto the same file. */
+	if( !strcmp( name, "gameui" ))
+	{
+		Con_Printf( "Xash3D GameCube: localization skip %s (MEM1; builtins cover menu)\n",
+			filename );
+		return;
+	}
+	Con_Printf( "Xash3D GameCube: localization begin %s\n", filename );
+#endif
+
 	pFileBuf = reinterpret_cast<char*>( EngFuncs::COM_LoadFile( filename, &buflen ));
 
 	if( !pFileBuf )
 	{
+#if !XASH_GAMECUBE
 		if( !strcmp( name, "mainui" ))
 		{
 			snprintf( filename, sizeof( filename ), "resource/gameui_%s.txt", lang );
 			pFileBuf = reinterpret_cast<char*>( EngFuncs::COM_LoadFile( filename, &buflen ));
 		}
+#endif
 	}
 
 	if( !pFileBuf )
@@ -456,6 +475,9 @@ static void Localize_AddToDictionary( const char *name, const char *lang )
 	}
 
 error:
+#if XASH_GAMECUBE
+	Con_Printf( "Xash3D GameCube: localization end %s entries=%d\n", filename, i );
+#endif
 	if( isUtf16 && afile )
 		delete[] afile;
 
@@ -486,6 +508,10 @@ static void Localize_Init( void )
 {
 	EngFuncs::ClientCmd( true, "exec mainui.cfg\n" );
 
+#if XASH_GAMECUBE
+	Con_Printf( "Xash3D GameCube: localization builtins begin\n" );
+#endif
+
 	hashed_cmds.Purge();
 
 	// strings.lst first
@@ -501,6 +527,59 @@ static void Localize_Init( void )
 		Dictionary_Insert( buf, MenuStrings[i] );
 	}
 
+#if XASH_GAMECUBE
+	Con_Printf( "Xash3D GameCube: localization builtins ready\n" );
+	/* gameui_english.txt is skipped on GC (MEM1). Seed the dialog / common
+	 * GameUI keys so Yes/No boxes never show raw GameUI_* tokens. */
+	{
+		static const struct { const char *key; const char *val; } gc_gameui[] =
+		{
+			{ "GameUI_OK", "OK" },
+			{ "GameUI_Cancel", "Cancel" },
+			{ "GameUI_Yes", "Yes" },
+			{ "GameUI_No", "No" },
+			{ "GameUI_QuitConfirmationText", "Do you wish to stop playing now?" },
+			{ "GameUI_GameMenu_Disconnect", "Disconnect" },
+			{ "GameUI_GameMenu_LeaveGame", "Leave game" },
+			{ "GameUI_GameMenu_ResumeGame", "Resume game" },
+			{ "GameUI_GameMenu_NewGame", "New game" },
+			{ "GameUI_GameMenu_LoadGame", "Load game" },
+			{ "GameUI_GameMenu_SaveGame", "Save game" },
+			{ "GameUI_GameMenu_Options", "Options" },
+			{ "GameUI_GameMenu_Quit", "Quit" },
+			{ "GameUI_Load", "Load" },
+			{ "GameUI_Save", "Save" },
+			{ "GameUI_LoadGame", "Load game" },
+			{ "GameUI_SaveGame", "Save game" },
+			{ "GameUI_Options", "Options" },
+			{ "GameUI_Audio", "Audio" },
+			{ "GameUI_Video", "Video" },
+			{ "GameUI_Joystick", "Gamepad" },
+			{ "GameUI_Console", "Console" },
+			{ "GameUI_PlayerName", "Player name" },
+			{ "GameUI_Easy", "Easy" },
+			{ "GameUI_Medium", "Medium" },
+			{ "GameUI_Hard", "Hard" },
+			{ "GameUI_Apply", "Apply" },
+			{ "GameUI_UseDefaults", "Use defaults" },
+			{ "GameUI_Disconnected", "Disconnected" },
+			{ "GameUI_StartingServer", "Starting server..." },
+			{ "GameUI_EstablishingConnection", "Establishing connection..." },
+			{ "GameUI_PrecachingResources", "Precaching resources..." },
+			{ "GameUI_ParseServerInfo", "Parsing server info..." },
+			{ "GameUI_SaveGame_Current", "Current" },
+			{ "GameUI_SaveGame_New", "New" },
+			{ "GameUI_SaveGame_NewSavedGame", "New saved game" },
+			{ "GameUI_QuickSave", "Quick" },
+			{ "GameUI_AutoSave", "Auto" },
+		};
+		for( int i = 0; i < (int)( sizeof( gc_gameui ) / sizeof( gc_gameui[0] )); i++ )
+			Dictionary_Insert( gc_gameui[i].key, gc_gameui[i].val );
+		Con_Printf( "Xash3D GameCube: localization GameUI seeds ready count=%d\n",
+			(int)( sizeof( gc_gameui ) / sizeof( gc_gameui[0] )));
+	}
+#endif
+
 	// always load default language translation
 	Localize_InitLanguage( "english" );
 
@@ -511,6 +590,9 @@ static void Localize_Init( void )
 
 	// strings.lst compatible aliasstrings then
 	UI_InitAliasStrings ();
+#if XASH_GAMECUBE
+	Con_Printf( "Xash3D GameCube: localization aliases ready\n" );
+#endif
 }
 
 static void Localize_Free( void )

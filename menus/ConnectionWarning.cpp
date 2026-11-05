@@ -130,6 +130,7 @@ void CMenuConnectionWarning::WriteSettings( const EPresets preset)
 ADD_MENU3( menu_connectionwarning, CMenuConnectionWarning, UI_ConnectionWarning_f );
 void UI_ConnectionWarning_f()
 {
+	menu_connectionwarning_Precache();
 	if( !UI_IsVisible() )
 		UI_Main_Menu();
 	menu_connectionwarning->Show();

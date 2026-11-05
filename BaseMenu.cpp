@@ -49,9 +49,12 @@ static qboolean UI_GCShouldPrecacheMenuEntry( const char *cmd )
 
 	/* Keep retail first-boot focused on the interactive top-level menu.
 	 * Secondary dialogs stay lazy and allocate only when explicitly opened. */
-	return !strcmp( cmd, "menu_connectionprogress" ) ||
-		!strcmp( cmd, "menu_connectionwarning" ) ||
-		!strcmp( cmd, "menu_main" );
+	/* Entry-specific precache can synchronously parse the full retail
+	 * background layout and block the host loop on GameCube. The top-level
+	 * menu performs its own lazy load when activated; leave all entries out of
+	 * the boot precache pass so activation remains responsive. */
+	(void)cmd;
+	return false;
 }
 #endif
 
@@ -646,6 +649,9 @@ void UI_UpdateMenu( float flTime )
 
 		// load scr
 		UI_LoadScriptConfig();
+#if XASH_GAMECUBE
+		Con_Printf( "Xash3D GameCube: menu script configuration ready\n" );
+#endif
 
 		loadStuff = false;
 	}
@@ -657,7 +663,15 @@ void UI_UpdateMenu( float flTime )
 	if( uiStatic.nextFrameActive )
 	{
 		if( !uiStatic.menu.IsActive() )
+		{
+#if XASH_GAMECUBE
+			Con_Printf( "Xash3D GameCube: opening main menu\n" );
+#endif
 			UI_Main_Menu();
+#if XASH_GAMECUBE
+			Con_Printf( "Xash3D GameCube: main menu opened\n" );
+#endif
+		}
 
 		uiStatic.nextFrameActive = false;
 	}
@@ -933,7 +947,7 @@ void UI_Precache( void )
 	{
 		uiStatic.buttons_draw_size = Size( UI_BUTTONS_WIDTH, UI_BUTTONS_HEIGHT );
 #if XASH_GAMECUBE
-		/* Room for the readable 14px menu font at 320x240. */
+		/* Room for the 18px TV menu font + status line at 320x240. */
 		if( uiStatic.buttons_draw_size.h < 56 )
 			uiStatic.buttons_draw_size.h = 56;
 #endif
@@ -1273,9 +1287,13 @@ void UI_Init( void )
 
 	uiStatic.renderPicbuttonText = gMenu.m_gameinfo.flags & GFL_RENDER_PICBUTTON_TEXT;
 #if XASH_GAMECUBE
+	/* Still mark lowmemory for other UI allocs, but do not force text-only
+	 * buttons — retail Half-Life uses gfx/shell/btns_main.bmp. LoadBmpButtons
+	 * falls back cleanly if the atlas cannot be uploaded. */
 	uiStatic.lowmemory = 1;
-	uiStatic.renderPicbuttonText = true;
-	Con_Printf( "Xash3D GameCube: mainui forcing low-memory text buttons\n" );
+	uiStatic.renderPicbuttonText = false;
+	Con_Printf( "Xash3D GameCube: mainui retail picbuttons enabled (lowmem=%d)\n",
+		uiStatic.lowmemory );
 #endif
 
 	// trying to load colors.lst

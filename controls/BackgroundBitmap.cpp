@@ -135,8 +135,10 @@ void CMenuBackgroundBitmap::Draw()
 		UpdatePreference();
 
 		// because the cvar is set by user, tell them if chosen background is not available
+#if !XASH_GAMECUBE
 		if( ui_prefer_won_background->value && s_state != DRAW_WON )
 			UI_ShowMessageBox( L( "WON background is not available" ));
+#endif
 	}
 
 	Point p;
@@ -220,11 +222,31 @@ bool CMenuBackgroundBitmap::LoadSteamBackground( bool gamedirOnly )
 	bool loaded = false;
 
 #if XASH_GAMECUBE
-	/* First retail menu bring-up prioritizes input/UI over decorative backdrop.
-	 * Loading even the reduced baked TGA still consumes transient MEM1 we do not
-	 * yet have after engine startup, so fall back to DRAW_COLOR for now. */
+	/* Prefer the disc-baked 320×240 layout (four lazy 160×120 tiles). Matches
+	 * the soft HUD; 320×240 single sheets soft-failed LoadFile under post-intro tip. */
 	(void)gamedirOnly;
-	return false;
+	afile = (char *)EngFuncs::COM_LoadFile( "resource/gc_menu/BackgroundLayout.txt" );
+	if( !afile )
+	{
+		bimage_t img;
+		img.hImage = 0;
+		if( EngFuncs::FileExists( "resource/gc_menu/background.tga", gamedirOnly ))
+			img.hImage = EngFuncs::PIC_Load( "resource/gc_menu/background.tga", PIC_NOFLIP_TGA );
+		if( !img.hImage && EngFuncs::FileExists( "resource/gc_menu/background.bmp", gamedirOnly ))
+			img.hImage = EngFuncs::PIC_Load( "resource/gc_menu/background.bmp" );
+		if( !img.hImage )
+		{
+			Con_Printf( "Xash3D GameCube: menu background load failed (layout/tga/bmp)\n" );
+			return false;
+		}
+		img.coord = Point( 0, 0 );
+		img.size = Size( EngFuncs::PIC_Width( img.hImage ), EngFuncs::PIC_Height( img.hImage ));
+		Con_Printf( "Xash3D GameCube: menu background loaded %dx%d (single sheet)\n",
+			img.size.w, img.size.h );
+		s_SteamBackgroundImageSize = img.size;
+		s_SteamBackground.AddToTail( img );
+		return true;
+	}
 #else
 	// try 25'th anniversary update background first
 	if( FBitSet( gMenu.m_gameinfo.flags, GFL_HD_BACKGROUND ))
@@ -257,13 +279,9 @@ bool CMenuBackgroundBitmap::LoadSteamBackground( bool gamedirOnly )
 	while(( pfile = EngFuncs::COM_ParseFile( pfile, token, sizeof( token ) )))
 	{
 		bimage_t img;
+		char tilePath[256];
 
-		if( !EngFuncs::FileExists( token, gamedirOnly ))
-			goto freefile;
-
-		img.hImage = EngFuncs::PIC_Load( token, PIC_NOFLIP_TGA );
-
-		if( !img.hImage ) goto freefile;
+		Q_strncpy( tilePath, token, sizeof( tilePath ));
 
 		// ignore "scaled" attribute. What does it mean?
 		pfile = EngFuncs::COM_ParseFile( pfile, token, sizeof( token ) );
@@ -277,13 +295,63 @@ bool CMenuBackgroundBitmap::LoadSteamBackground( bool gamedirOnly )
 		if( !pfile ) goto freefile;
 		img.coord.y = atoi( token );
 
+#if XASH_GAMECUBE
+		/* Skip a missing/OOM tile instead of discarding the whole layout —
+		 * one quadrant is better than a flat gray fallback. */
+		if( !EngFuncs::FileExists( tilePath, gamedirOnly ))
+		{
+			Con_Printf( "Xash3D GameCube: menu bg tile missing %s\n", tilePath );
+			continue;
+		}
+		img.hImage = EngFuncs::PIC_Load( tilePath, PIC_NOFLIP_TGA );
+		if( !img.hImage )
+		{
+			Con_Printf( "Xash3D GameCube: menu bg tile load failed %s\n", tilePath );
+			continue;
+		}
+#else
+		if( !EngFuncs::FileExists( tilePath, gamedirOnly ))
+			goto freefile;
+
+		img.hImage = EngFuncs::PIC_Load( tilePath, PIC_NOFLIP_TGA );
+
+		if( !img.hImage ) goto freefile;
+#endif
+
 		img.size.w = EngFuncs::PIC_Width( img.hImage );
 		img.size.h = EngFuncs::PIC_Height( img.hImage );
 
 		s_SteamBackground.AddToTail( img );
 	}
 
-	loaded = true;
+	loaded = s_SteamBackground.Count() > 0;
+#if XASH_GAMECUBE
+	/* Tip can still be too thin for four 57 KiB tiles; fall back to the single
+	 * baked sheet so the retail backdrop is not replaced with flat color. */
+	if( !loaded )
+	{
+		bimage_t img;
+
+		EngFuncs::COM_FreeFile( afile );
+		afile = NULL;
+		img.hImage = 0;
+		if( EngFuncs::FileExists( "resource/gc_menu/background.tga", gamedirOnly ))
+			img.hImage = EngFuncs::PIC_Load( "resource/gc_menu/background.tga", PIC_NOFLIP_TGA );
+		if( !img.hImage && EngFuncs::FileExists( "resource/gc_menu/background.bmp", gamedirOnly ))
+			img.hImage = EngFuncs::PIC_Load( "resource/gc_menu/background.bmp" );
+		if( img.hImage )
+		{
+			img.coord = Point( 0, 0 );
+			img.size = Size( EngFuncs::PIC_Width( img.hImage ), EngFuncs::PIC_Height( img.hImage ));
+			s_SteamBackgroundImageSize = img.size;
+			s_SteamBackground.AddToTail( img );
+			Con_Printf( "Xash3D GameCube: menu background fallback single sheet %dx%d\n",
+				img.size.w, img.size.h );
+			return true;
+		}
+		return false;
+	}
+#endif
 
 freefile:
 	EngFuncs::COM_FreeFile( afile );

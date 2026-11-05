@@ -244,7 +244,12 @@ void CMenuPicButton::Draw( )
 	{
 		Point coord;
 
+#if XASH_GAMECUBE
+		/* TV menu labels are wider than the retail button art width. */
+		coord.x = m_scPos.x + ( uiStatic.buttons_draw_size.w + 160 ) * uiStatic.scaleX;
+#else
 		coord.x = m_scPos.x + ( uiStatic.buttons_draw_size.w + 40 ) * uiStatic.scaleX;
+#endif
 		coord.y = m_scPos.y + m_scSize.h / 2 - EngFuncs::ConsoleCharacterHeight() / 2;
 
 		int	r, g, b;
@@ -356,8 +361,8 @@ void CMenuPicButton::Draw( )
 		uint textflags = ETF_NOSIZELIMIT | ETF_FORCECOL;
 		int ch = m_scChSize;
 #if XASH_GAMECUBE
-		/* Match the readable floor used when baking the default menu font. */
-		ch = Q_max( ch, 14 );
+		/* Match the TV-readable floor used when baking the default menu font. */
+		ch = Q_max( ch, 18 );
 		if( szName && szName[0] )
 		{
 			static bool s_logged_text;
@@ -409,7 +414,14 @@ void CMenuPicButton::SetPicture( EDefaultBtns ID )
 void CMenuPicButton::SetPicture( const char *filename, int hk )
 {
 	hPic = EngFuncs::PIC_Load( filename );
+	button_id = -1; /* file strips use PIC size thirds, not btns atlas */
 	hotkey = hk;
+#if XASH_GAMECUBE
+	if( hPic )
+		Con_Printf( "Xash3D GameCube: retail menu btn strip ready %s\n", filename );
+	else
+		Con_Printf( "Xash3D GameCube: retail menu btn strip miss %s\n", filename );
+#endif
 }
 
 bool CMenuPicButton::HotKey( int key )

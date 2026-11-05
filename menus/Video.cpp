@@ -39,6 +39,7 @@ UI_Video_Menu
 */
 void UI_Video_Menu( void )
 {
+	menu_video_Precache();
 	if( !menu_video->WasInit() )
 	{
 		menu_video->banner.SetPicture( ART_BANNER );

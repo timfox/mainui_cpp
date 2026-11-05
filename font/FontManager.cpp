@@ -78,9 +78,9 @@ void CFontManager::VidInit( void )
 #if XASH_GAMECUBE
 		Con_Printf( "Xash3D GameCube: mainui font vidinit scale=%.3f lowmemory=%d\n",
 			scale, uiStatic.lowmemory );
-		/* 320x240 yields ~8px at the normal scale; keep labels readable. */
-		const int med_tall = Q_max( 14, (int)( UI_MED_CHAR_HEIGHT * scale + 0.5f ));
-		const int con_tall = Q_max( 10, (int)( UI_CONSOLE_CHAR_HEIGHT * scale + 0.5f ));
+		/* 320x240 yields ~8px at the normal scale; 18px reads on TV without dominating. */
+		const int med_tall = Q_max( 18, (int)( UI_MED_CHAR_HEIGHT * scale + 0.5f ));
+		const int con_tall = Q_max( 12, (int)( UI_CONSOLE_CHAR_HEIGHT * scale + 0.5f ));
 #else
 		const int med_tall = (int)( UI_MED_CHAR_HEIGHT * scale + 0.5f );
 		const int con_tall = (int)( UI_CONSOLE_CHAR_HEIGHT * scale + 0.5f );

@@ -79,10 +79,20 @@ void CMenuYesNoMessageBox::_Init()
 	SetRect( DLG_X + 192, 256, 640, 256 );
 
 	if( !m_bSetYes )
-		SetPositiveButton( L( "GameUI_OK" ), PC_OK );
+	{
+		const char *ok = L( "GameUI_OK" );
+		if( !ok || !strcmp( ok, "GameUI_OK" ))
+			ok = "OK";
+		SetPositiveButton( ok, PC_OK );
+	}
 
 	if( !m_bSetNo )
-		SetNegativeButton( L( "GameUI_Cancel" ), PC_CANCEL );
+	{
+		const char *cancel = L( "GameUI_Cancel" );
+		if( !cancel || !strcmp( cancel, "GameUI_Cancel" ))
+			cancel = "Cancel";
+		SetNegativeButton( cancel, PC_CANCEL );
+	}
 
 	if( !(bool)onNegative )
 		onNegative = CEventCallback::NoopCb;

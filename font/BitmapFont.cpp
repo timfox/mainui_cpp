@@ -45,7 +45,9 @@ bool CBitmapFont::Create(const char *name, int tall, int weight, int blur, float
 	m_iAscent = 0;
 	m_iMaxCharWidth = 0;
 #if XASH_GAMECUBE
-	m_iHeight = m_iTall = MAINUI_CONSOLE_FONT_HEIGHT;
+	/* Keep tall as requested. Glyphs are drawn via pfnDrawCharacter(hFont=0),
+	 * which scales the already-resident credits HUD font (menufont OOMs/UVs). */
+	hImage = 0;
 #else
 #ifndef MAINUI_FORCE_CONSOLE_BITMAP_FONT
 	if( tall > UI_CONSOLE_CHAR_HEIGHT * uiStatic.scaleY )
@@ -83,8 +85,14 @@ void CBitmapFont::GetCharABCWidths(int ch, int &a, int &b, int &c)
 		b = m_iHeight/2-1;
 	else
 	{
+#if XASH_GAMECUBE
+		/* Match pfnDrawCharacter scaled credits-font advance (≈ half tall). */
+		b = Q_max( 1, m_iTall / 2 );
+		(void)ch;
+#else
 		char str[2] = {(char)ch, 0};
 		EngFuncs::engfuncs.pfnDrawConsoleStringLen( str, &b, NULL );
+#endif
 	}
 }
 
@@ -150,9 +158,15 @@ int CBitmapFont::DrawCharacter(int ch, Point pt, int charH, const unsigned int c
 	}
 	else
 	{
+#if XASH_GAMECUBE
+		/* Scale the resident credits HUD font to charH (TV-readable). */
+		EngFuncs::DrawCharacter( pt.x, pt.y, Q_max( 1, charH / 2 ), charH, ch, (int)color, 0 );
+		return Q_max( 1, charH / 2 );
+#else
 		char str[2] = {(char)ch, 0};
 		EngFuncs::engfuncs.pfnDrawSetTextColor( Red( color ), Green( color ), Blue( color ), Alpha( color ) );
 
 		return EngFuncs::engfuncs.pfnDrawConsoleString( pt.x, pt.y, str ) - pt.x;
+#endif
 	}
 }

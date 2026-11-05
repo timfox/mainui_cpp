@@ -464,6 +464,8 @@ UI_LoadGame_Precache
 */
 void UI_LoadSaveGame_Precache( void )
 {
+	if( menu_loadgame )
+		return;
 	menu_loadgame = new CMenuLoadGame();
 	EngFuncs::PIC_Load( ART_BANNER_SAVE );
 	EngFuncs::PIC_Load( ART_BANNER_LOAD );
@@ -479,6 +481,7 @@ void UI_LoadSaveGame_Menu( bool saveMode )
 
 	if( !EngFuncs::CheckGameDll( )) return;
 
+	UI_LoadSaveGame_Precache();
 	menu_loadgame->Show();
 	menu_loadgame->SetSaveMode( saveMode );
 	menu_loadgame->UpdateList();
@@ -487,6 +490,7 @@ void UI_LoadSaveGame_Menu( bool saveMode )
 void UI_LoadSaveGame_Shutdown( void )
 {
 	delete menu_loadgame;
+	menu_loadgame = NULL;
 }
 
 /*

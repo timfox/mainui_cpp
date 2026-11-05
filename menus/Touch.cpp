@@ -39,6 +39,7 @@ UI_Touch_Menu
 */
 void UI_Touch_Menu( void )
 {
+	menu_touch_Precache();
 	if( !menu_touch->WasInit() )
 	{
 		menu_touch->banner.SetPicture( ART_BANNER );
