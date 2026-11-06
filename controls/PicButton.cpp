@@ -216,7 +216,13 @@ CMenuPicButton::DrawButton
 void CMenuPicButton::DrawButton( int r, int g, int b, int a, wrect_t *rects, int state )
 {
 	EngFuncs::PIC_Set( hPic, r, g, b, a );
+#if XASH_GAMECUBE
+	/* Soft/YUV DumpFrames chroma-fringe thin additive strokes. Prefer
+	 * translucent color-key so black stays out and orange ink stays opaque. */
+	EngFuncs::PIC_DrawTrans( m_scPos, uiStatic.buttons_draw_size.Scale(), &rects[state] );
+#else
 	EngFuncs::PIC_DrawAdditive( m_scPos, uiStatic.buttons_draw_size.Scale(), &rects[state] );
+#endif
 }
 
 /*
@@ -242,21 +248,28 @@ void CMenuPicButton::Draw( )
 
 	if( szStatusText && FBitSet( iFlags, QMF_NOTIFY ) && !FBitSet( gMenu.m_gameinfo.flags, GFL_NOSKILLS ))
 	{
-		Point coord;
+#if XASH_GAMECUBE
+		/* Soft-font DumpFrames shred when every row paints help text. Retail
+		 * only needs the focused item's status on the right. */
+		if( state == BUTTON_FOCUS || state == BUTTON_PRESSED )
+#endif
+		{
+			Point coord;
 
 #if XASH_GAMECUBE
-		/* TV menu labels are wider than the retail button art width. */
-		coord.x = m_scPos.x + ( uiStatic.buttons_draw_size.w + 160 ) * uiStatic.scaleX;
+			/* TV menu labels are wider than the retail button art width. */
+			coord.x = m_scPos.x + ( uiStatic.buttons_draw_size.w + 160 ) * uiStatic.scaleX;
 #else
-		coord.x = m_scPos.x + ( uiStatic.buttons_draw_size.w + 40 ) * uiStatic.scaleX;
+			coord.x = m_scPos.x + ( uiStatic.buttons_draw_size.w + 40 ) * uiStatic.scaleX;
 #endif
-		coord.y = m_scPos.y + m_scSize.h / 2 - EngFuncs::ConsoleCharacterHeight() / 2;
+			coord.y = m_scPos.y + m_scSize.h / 2 - EngFuncs::ConsoleCharacterHeight() / 2;
 
-		int	r, g, b;
+			int	r, g, b;
 
-		UnpackRGB( r, g, b, uiColorHelp );
-		EngFuncs::DrawSetTextColor( r, g, b );
-		EngFuncs::DrawConsoleString( coord, szStatusText );
+			UnpackRGB( r, g, b, uiColorHelp );
+			EngFuncs::DrawSetTextColor( r, g, b );
+			EngFuncs::DrawConsoleString( coord, szStatusText );
+		}
 	}
 
 	int a = (512 - (uiStatic.realTime - m_iLastFocusTime)) >> 1;
@@ -286,6 +299,13 @@ void CMenuPicButton::Draw( )
 			}
 		}
 
+#if XASH_GAMECUBE
+		/* PC stacks FOCUS+NOFOCUS for additive glow. Each strip state already
+		 * carries its own art (idle / glow / pressed); stacking both through
+		 * Trans/soft RGB565 paints a doubled orange+fringe ghost. */
+		(void)a;
+		DrawButton( r, g, b, 255, rects, state );
+#else
 		// decay
 		if( state == BUTTON_NOFOCUS && a > 0 )
 		{
@@ -312,6 +332,7 @@ void CMenuPicButton::Draw( )
 			// just draw
 			DrawButton( r, g, b, 255, rects, state );
 		}
+#endif
 	}
 	else if( !uiStatic.lowmemory )
 	{

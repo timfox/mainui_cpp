@@ -58,6 +58,24 @@ void CMenuBaseWindow::Show()
 		break;
 	}
 #endif
+#if XASH_GAMECUBE
+	/* Pad has no mouse hover. If the virtual cursor isn't over a button,
+	 * land keyboard focus on the first activatable item (New Game, Easy…). */
+	{
+		CMenuBaseItem *cur = ItemAtCursor();
+		if( !cur || !cur->IsVisible()
+			|| ( cur->iFlags & (QMF_GRAYED|QMF_INACTIVE|QMF_MOUSEONLY) ))
+		{
+			m_iCursor = 0;
+			m_iCursorPrev = -1;
+			if( AdjustCursor( 1 ) )
+			{
+				SetBits( m_pItems[m_iCursor]->iFlags, QMF_HASKEYBOARDFOCUS );
+				CursorMoved();
+			}
+		}
+	}
+#endif
 	EnableTransition( ANIM_OPENING );
 }
 

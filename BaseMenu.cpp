@@ -947,8 +947,9 @@ void UI_Precache( void )
 	{
 		uiStatic.buttons_draw_size = Size( UI_BUTTONS_WIDTH, UI_BUTTONS_HEIGHT );
 #if XASH_GAMECUBE
-		/* Room for the 18px TV menu font + status line at 320x240. */
-		if( uiStatic.buttons_draw_size.h < 56 )
+		/* Text-button fallback only — pic strips set WON 156×26 metrics in
+		 * LoadBmpButtons and must keep retail proportions. */
+		if( uiStatic.renderPicbuttonText && uiStatic.buttons_draw_size.h < 56 )
 			uiStatic.buttons_draw_size.h = 56;
 #endif
 	}
