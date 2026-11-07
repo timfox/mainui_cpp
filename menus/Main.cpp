@@ -283,7 +283,10 @@ void CMenuMain::_Init( void )
 #if XASH_GAMECUBE
 	/* Baked logo from disc build (resource/gc_menu/logo.tga). Steam-bg path
 	 * disables logo.avi, so draw a static title mark instead. */
-	titleLogo.SetPicture( "resource/gc_menu/logo.tga" );
+	/* WON title: a baked frame of media/logo.avi (640x100 banner, drawn as
+	 * full-resolution GX CMPR by the renderer; logo_banner.tga is only the
+	 * small picture mainui loads for it). */
+	titleLogo.SetPicture( "resource/gc_menu/logo_banner.tga" );
 	/* The position and size below are in the 1024×768 menu coordinate
 	 * system, so they must be scaled to the GameCube framebuffer. */
 	titleLogo.iFlags = QMF_INACTIVE;
@@ -409,9 +412,10 @@ void CMenuMain::VidInit( bool connected )
 	}
 
 #if XASH_GAMECUBE
-	/* Centered title logo above the button column (retail-ish placement). */
-	titleLogo.SetCoord( ( 1024 - 512 ) / 2, 40 );
-	titleLogo.size = Size( 512, 56 );
+	/* WON places logo.avi full width at y=70 of the 640x480 menu
+	 * (CMenuMovieBanner); the baked banner is 640x104. */
+	titleLogo.SetCoord( 0, ( 70 / 480.0 ) * 768.0 );
+	titleLogo.size = Size( 1024, ( 104 / 480.0 ) * 768.0 );
 #endif
 
 	// now figure out what's visible

@@ -256,12 +256,10 @@ void CMenuPicButton::Draw( )
 		{
 			Point coord;
 
-#if XASH_GAMECUBE
-			/* TV menu labels are wider than the retail button art width. */
-			coord.x = m_scPos.x + ( uiStatic.buttons_draw_size.w + 160 ) * uiStatic.scaleX;
-#else
+			/* WON: the focused button's description sits just right of the
+			 * button art (same offset on GameCube; the old +160 pushed it
+			 * past the art column into the background). */
 			coord.x = m_scPos.x + ( uiStatic.buttons_draw_size.w + 40 ) * uiStatic.scaleX;
-#endif
 			coord.y = m_scPos.y + m_scSize.h / 2 - EngFuncs::ConsoleCharacterHeight() / 2;
 
 			int	r, g, b;
