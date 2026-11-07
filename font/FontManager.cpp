@@ -80,7 +80,10 @@ void CFontManager::VidInit( void )
 			scale, uiStatic.lowmemory );
 		/* 320x240 yields ~8px at the normal scale; 18px reads on TV without dominating. */
 		const int med_tall = Q_max( 18, (int)( UI_MED_CHAR_HEIGHT * scale + 0.5f ));
-		const int con_tall = Q_max( 12, (int)( UI_CONSOLE_CHAR_HEIGHT * scale + 0.5f ));
+		/* Help/status text at the PC menu's size: 18 * scale, i.e. ~11px of a
+		 * 640x480 screen (this was clamped to 12 units = 24px of the TV
+		 * frame, over twice the WON size). */
+		const int con_tall = Q_max( 6, (int)( UI_CONSOLE_CHAR_HEIGHT * scale + 0.5f ));
 #else
 		const int med_tall = (int)( UI_MED_CHAR_HEIGHT * scale + 0.5f );
 		const int con_tall = (int)( UI_CONSOLE_CHAR_HEIGHT * scale + 0.5f );
