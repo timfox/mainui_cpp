@@ -38,6 +38,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ART_CLOSEBTN_F	"gfx/shell/cls_f"
 #define ART_CLOSEBTN_D	"gfx/shell/cls_d"
 
+static bool UI_IsDayOfDefeat()
+{
+	return !stricmp( gMenu.m_gameinfo.gamefolder, "dod" )
+		|| !stricmp( gMenu.m_gameinfo.title, "Day of Defeat" );
+}
+
 class CMenuMain: public CMenuFramework
 {
 public:
@@ -188,6 +194,10 @@ void CMenuMain::HazardCourseCb()
 
 void CMenuMain::_Init( void )
 {
+	const bool dodRetail = UI_IsDayOfDefeat();
+	if( dodRetail )
+		EngFuncs::PlayBackgroundTrack( "media/gamestartup.wav", "media/gamestartup.wav" );
+
 	if( gMenu.m_gameinfo.trainmap[0] && stricmp( gMenu.m_gameinfo.trainmap, gMenu.m_gameinfo.startmap ) != 0 )
 		bTrainMap = true;
 	else bTrainMap = false;
@@ -266,14 +276,14 @@ void CMenuMain::_Init( void )
 	if ( gMenu.m_gameinfo.gamemode == GAME_MULTIPLAYER_ONLY || gMenu.m_gameinfo.startmap[0] == 0 )
 		newGame.SetGrayed( true );
 
-	if ( gMenu.m_gameinfo.gamemode == GAME_MULTIPLAYER_ONLY )
+	if ( gMenu.m_gameinfo.gamemode == GAME_MULTIPLAYER_ONLY || dodRetail )
 	{
 		/* Retail Day of Defeat / MP-only: New game, Find servers, Options, Quit.
 		 * New game opens create-server; Find servers replaces Load game. */
-		newGame.SetNameAndStatus( L( "GameUI_GameMenu_NewGame" ), L( "Start a new multiplayer game." ) );
+		newGame.SetNameAndStatus( "New game", "Start a new multiplayer game." );
 		newGame.onReleased = UI_CreateGame_Menu;
 		newGame.SetGrayed( false );
-		saveRestore.SetNameAndStatus( L( "GameUI_GameMenu_FindServers" ), L( "Search for internet game servers." ) );
+		saveRestore.SetNameAndStatus( "Find servers", "Search for internet game servers." );
 		saveRestore.onReleased = UI_InternetGames_Menu;
 		saveRestore.SetGrayed( false );
 		hazardCourse.SetGrayed( true );
@@ -335,9 +345,9 @@ UI_Main_Init
 */
 void CMenuMain::VidInit( bool connected )
 {
-	int hoffset = ( 70 / 640.0 ) * 1024.0;
-	int retail_top = ( 249 / 480.0 ) * 768.0;
-	int ygap = (( 404 - 373 ) / 480.0 ) * 768.0;
+	int hoffset = ( 32 / 640.0 ) * 1024.0;
+	int retail_top = ( 333 / 480.0 ) * 768.0;
+	int ygap = ( 31 / 480.0 ) * 768.0;
 #if XASH_GAMECUBE
 	/* Text-only fallback needs taller rows; retail btns_main art uses the
 	 * stock ~50 menu-unit gap so the column matches PC Half-Life. */
@@ -390,7 +400,7 @@ void CMenuMain::VidInit( bool connected )
 	else
 	{
 		int yoffset = retail_top;
-		const bool mpOnly = ( gMenu.m_gameinfo.gamemode == GAME_MULTIPLAYER_ONLY );
+		const bool mpOnly = ( gMenu.m_gameinfo.gamemode == GAME_MULTIPLAYER_ONLY || UI_IsDayOfDefeat() );
 
 		if( mpOnly )
 		{
@@ -402,9 +412,9 @@ void CMenuMain::VidInit( bool connected )
 			saveRestore.SetPicture( PC_MULTIPLAYER );
 #endif
 			saveRestore.onReleased = UI_InternetGames_Menu;
-			newGame.SetNameAndStatus( L( "GameUI_GameMenu_NewGame" ), L( "Start a new multiplayer game." ) );
+			newGame.SetNameAndStatus( "New game", "Start a new multiplayer game." );
 			newGame.onReleased = UI_CreateGame_Menu;
-			quit.SetNameAndStatus( L( "GameUI_GameMenu_Quit" ), L( "Quit playing." ) );
+			quit.SetNameAndStatus( "Quit", "Quit playing." );
 		}
 		else
 		{
@@ -439,10 +449,10 @@ void CMenuMain::VidInit( bool connected )
 	}
 
 #if XASH_GAMECUBE
-	if( gMenu.m_gameinfo.gamemode == GAME_MULTIPLAYER_ONLY )
+	if( gMenu.m_gameinfo.gamemode == GAME_MULTIPLAYER_ONLY || UI_IsDayOfDefeat() )
 	{
 		/* DoD retail: DAY of DEFEAT wordmark under the button column (lower-left). */
-		titleLogo.SetCoord( hoffset, ( 430 / 480.0 ) * 768.0 );
+		titleLogo.SetCoord( hoffset, ( 456 / 480.0 ) * 768.0 );
 		titleLogo.size = Size( 420, 40 );
 	}
 	else
