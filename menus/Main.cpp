@@ -268,16 +268,25 @@ void CMenuMain::_Init( void )
 
 	if ( gMenu.m_gameinfo.gamemode == GAME_MULTIPLAYER_ONLY )
 	{
-		saveRestore.SetGrayed( true );
+		/* Retail Day of Defeat / MP-only: New game, Find servers, Options, Quit.
+		 * New game opens create-server; Find servers replaces Load game. */
+		newGame.SetNameAndStatus( L( "GameUI_GameMenu_NewGame" ), L( "Start a new multiplayer game." ) );
+		newGame.onReleased = UI_CreateGame_Menu;
+		newGame.SetGrayed( false );
+		saveRestore.SetNameAndStatus( L( "GameUI_GameMenu_FindServers" ), L( "Search for internet game servers." ) );
+		saveRestore.onReleased = UI_InternetGames_Menu;
+		saveRestore.SetGrayed( false );
 		hazardCourse.SetGrayed( true );
 	}
 
 	// server.dll needs for reading savefiles or startup newgame
 	if( !EngFuncs::CheckGameDll( ))
 	{
-		saveRestore.SetGrayed( true );
+		if( gMenu.m_gameinfo.gamemode != GAME_MULTIPLAYER_ONLY )
+			saveRestore.SetGrayed( true );
 		hazardCourse.SetGrayed( true );
-		newGame.SetGrayed( true );
+		if( gMenu.m_gameinfo.gamemode != GAME_MULTIPLAYER_ONLY )
+			newGame.SetGrayed( true );
 	}
 
 #if XASH_GAMECUBE
@@ -381,22 +390,40 @@ void CMenuMain::VidInit( bool connected )
 	else
 	{
 		int yoffset = retail_top;
+		const bool mpOnly = ( gMenu.m_gameinfo.gamemode == GAME_MULTIPLAYER_ONLY );
 
-		saveRestore.SetNameAndStatus( "Load Game", "Load a previously saved game." );
+		if( mpOnly )
+		{
+			saveRestore.SetNameAndStatus( L( "GameUI_GameMenu_FindServers" ), L( "Search for internet game servers." ) );
 #if XASH_GAMECUBE
-		saveRestore.SetPicture( "resource/gc_menu/btn_load_game.tga" );
+			/* Reuse load-game strip art until a dedicated Find Servers bake exists. */
+			saveRestore.SetPicture( "resource/gc_menu/btn_load_game.tga" );
 #else
-		saveRestore.SetPicture( PC_LOAD_GAME );
+			saveRestore.SetPicture( PC_MULTIPLAYER );
 #endif
-		saveRestore.onReleased = UI_LoadGame_Menu;
-		newGame.SetNameAndStatus( "New Game", "Start a new single player game." );
+			saveRestore.onReleased = UI_InternetGames_Menu;
+			newGame.SetNameAndStatus( L( "GameUI_GameMenu_NewGame" ), L( "Start a new multiplayer game." ) );
+			newGame.onReleased = UI_CreateGame_Menu;
+			quit.SetNameAndStatus( L( "GameUI_GameMenu_Quit" ), L( "Quit playing." ) );
+		}
+		else
+		{
+			saveRestore.SetNameAndStatus( "Load Game", "Load a previously saved game." );
+#if XASH_GAMECUBE
+			saveRestore.SetPicture( "resource/gc_menu/btn_load_game.tga" );
+#else
+			saveRestore.SetPicture( PC_LOAD_GAME );
+#endif
+			saveRestore.onReleased = UI_LoadGame_Menu;
+			newGame.SetNameAndStatus( "New Game", "Start a new single player game." );
+			quit.SetNameAndStatus( "Quit", "Quit playing Half-Life." );
+		}
 		configuration.SetNameAndStatus( "Options", "Change game settings, configure controls." );
-		quit.SetNameAndStatus( "Quit", "Quit playing Half-Life." );
 
 		newGame.SetCoord( hoffset, yoffset );
 		yoffset += ygap;
 
-		if( bTrainMap )
+		if( bTrainMap && !mpOnly )
 		{
 			hazardCourse.SetCoord( hoffset, yoffset );
 			yoffset += ygap;
@@ -412,10 +439,19 @@ void CMenuMain::VidInit( bool connected )
 	}
 
 #if XASH_GAMECUBE
-	/* WON places logo.avi full width at y=70 of the 640x480 menu
-	 * (CMenuMovieBanner); the baked banner is 640x104. */
-	titleLogo.SetCoord( 0, ( 70 / 480.0 ) * 768.0 );
-	titleLogo.size = Size( 1024, ( 104 / 480.0 ) * 768.0 );
+	if( gMenu.m_gameinfo.gamemode == GAME_MULTIPLAYER_ONLY )
+	{
+		/* DoD retail: DAY of DEFEAT wordmark under the button column (lower-left). */
+		titleLogo.SetCoord( hoffset, ( 430 / 480.0 ) * 768.0 );
+		titleLogo.size = Size( 420, 40 );
+	}
+	else
+	{
+		/* WON places logo.avi full width at y=70 of the 640x480 menu
+		 * (CMenuMovieBanner); the baked banner is 640x104. */
+		titleLogo.SetCoord( 0, ( 70 / 480.0 ) * 768.0 );
+		titleLogo.size = Size( 1024, ( 104 / 480.0 ) * 768.0 );
+	}
 #endif
 
 	// now figure out what's visible
@@ -425,7 +461,7 @@ void CMenuMain::VidInit( bool connected )
 	configuration.SetVisibility( true );
 	quit.SetVisibility( !connected );
 	if( bTrainMap )
-		hazardCourse.SetVisibility( !connected );
+		hazardCourse.SetVisibility( !connected && gMenu.m_gameinfo.gamemode != GAME_MULTIPLAYER_ONLY );
 }
 
 void CMenuMain::_VidInit()

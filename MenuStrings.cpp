@@ -545,6 +545,7 @@ static void Localize_Init( void )
 			{ "GameUI_GameMenu_NewGame", "New game" },
 			{ "GameUI_GameMenu_LoadGame", "Load game" },
 			{ "GameUI_GameMenu_SaveGame", "Save game" },
+			{ "GameUI_GameMenu_FindServers", "Find servers" },
 			{ "GameUI_GameMenu_Options", "Options" },
 			{ "GameUI_GameMenu_Quit", "Quit" },
 			{ "GameUI_Load", "Load" },
