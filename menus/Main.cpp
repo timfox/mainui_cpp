@@ -280,10 +280,12 @@ void CMenuMain::_Init( void )
 	{
 		/* Retail Day of Defeat / MP-only: New game, Find servers, Options, Quit.
 		 * New game opens create-server; Find servers replaces Load game. */
-		newGame.SetNameAndStatus( "New game", "Start a new multiplayer game." );
+		newGame.SetNameAndStatus( "New game", "" );
 		newGame.onReleased = UI_CreateGame_Menu;
 		newGame.SetGrayed( false );
-		saveRestore.SetNameAndStatus( "Find servers", "Search for internet game servers." );
+		saveRestore.SetNameAndStatus( "Find servers", "" );
+		configuration.SetNameAndStatus( "Options", "" );
+		quit.SetNameAndStatus( "Quit", "" );
 		saveRestore.onReleased = UI_InternetGames_Menu;
 		saveRestore.SetGrayed( false );
 		hazardCourse.SetGrayed( true );
@@ -292,10 +294,10 @@ void CMenuMain::_Init( void )
 	// server.dll needs for reading savefiles or startup newgame
 	if( !EngFuncs::CheckGameDll( ))
 	{
-		if( gMenu.m_gameinfo.gamemode != GAME_MULTIPLAYER_ONLY )
+		if( gMenu.m_gameinfo.gamemode != GAME_MULTIPLAYER_ONLY && !dodRetail )
 			saveRestore.SetGrayed( true );
 		hazardCourse.SetGrayed( true );
-		if( gMenu.m_gameinfo.gamemode != GAME_MULTIPLAYER_ONLY )
+		if( gMenu.m_gameinfo.gamemode != GAME_MULTIPLAYER_ONLY && !dodRetail )
 			newGame.SetGrayed( true );
 	}
 
@@ -404,7 +406,7 @@ void CMenuMain::VidInit( bool connected )
 
 		if( mpOnly )
 		{
-			saveRestore.SetNameAndStatus( L( "GameUI_GameMenu_FindServers" ), L( "Search for internet game servers." ) );
+			saveRestore.SetNameAndStatus( "Find servers", "" );
 #if XASH_GAMECUBE
 			/* Reuse load-game strip art until a dedicated Find Servers bake exists. */
 			saveRestore.SetPicture( "resource/gc_menu/btn_load_game.tga" );
@@ -412,9 +414,9 @@ void CMenuMain::VidInit( bool connected )
 			saveRestore.SetPicture( PC_MULTIPLAYER );
 #endif
 			saveRestore.onReleased = UI_InternetGames_Menu;
-			newGame.SetNameAndStatus( "New game", "Start a new multiplayer game." );
+			newGame.SetNameAndStatus( "New game", "" );
 			newGame.onReleased = UI_CreateGame_Menu;
-			quit.SetNameAndStatus( "Quit", "Quit playing." );
+			quit.SetNameAndStatus( "Quit", "" );
 		}
 		else
 		{
@@ -428,7 +430,7 @@ void CMenuMain::VidInit( bool connected )
 			newGame.SetNameAndStatus( "New Game", "Start a new single player game." );
 			quit.SetNameAndStatus( "Quit", "Quit playing Half-Life." );
 		}
-		configuration.SetNameAndStatus( "Options", "Change game settings, configure controls." );
+		configuration.SetNameAndStatus( "Options", UI_IsDayOfDefeat() ? "" : "Change game settings, configure controls." );
 
 		newGame.SetCoord( hoffset, yoffset );
 		yoffset += ygap;
