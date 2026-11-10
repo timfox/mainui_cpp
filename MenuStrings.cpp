@@ -329,8 +329,13 @@ static void Localize_AddToDictionary( const char *name, const char *lang )
 	 * 150 KiB GX buffer, MEM1 can still be too fragmented/tight to load it
 	 * (FS_LoadFileFromArchive OOM), which delayed/broke menu strings. The GC
 	 * main menu uses hardcoded English labels + builtins; skip the bulky
-	 * GameUI dictionary and never fall mainui back onto the same file. */
-	if( !strcmp( name, "gameui" ))
+	 * GameUI dictionary and never fall mainui back onto the same file.
+	 * valve_english.txt UTF-16→UTF-8 can hang tip MEM1 under -gcmenuplaystart
+	 * (probe 224842 stuck after "localization begin"); builtins + seeds cover
+	 * New Game / play-start. */
+	if( !strcmp( name, "gameui" )
+		|| ( EngFuncs::GetCvarFloat( "gc_menuplaystart" ) >= 1.0f
+			&& ( !strcmp( name, "valve" ) || !strcmp( name, "mainui" )) ) )
 	{
 		Con_Printf( "Xash3D GameCube: localization skip %s (MEM1; builtins cover menu)\n",
 			filename );

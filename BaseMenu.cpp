@@ -535,7 +535,9 @@ void UI_DrawMouseCursor( void )
 	{
 		FOR_EACH_VEC( uiStatic.menu.Current()->m_pItems, i )
 		{
-			item = (CMenuBaseItem *)uiStatic.menu.Current()->GetItemByIndex(cursor);
+			item = (CMenuBaseItem *)uiStatic.menu.Current()->GetItemByIndex(i);
+			if( !item )
+				continue;
 
 			if( !item->IsVisible( ))
 				continue;
@@ -666,10 +668,24 @@ void UI_UpdateMenu( float flTime )
 		{
 #if XASH_GAMECUBE
 			Con_Printf( "Xash3D GameCube: opening main menu\n" );
-#endif
+			/* -gcmenuplaystart tips MEM1 before Show(); UI_Main_Menu never
+			 * reached "main menu opened" (220253/221435/223658) even after
+			 * skipping steam tiles + btn strips. Queue Flipper New Game
+			 * without constructing the main window — retail menu proof stays
+			 * on the plain menu boot path (no -gcmenuplaystart). */
+			if( EngFuncs::GetCvarFloat( "gc_menuplaystart" ) >= 1.0f )
+			{
+				Con_Printf( "Xash3D GameCube: menuplaystart skip UI_Main_Menu\n" );
+				EngFuncs::ClientCmd( false, "gc_playstart\n" );
+				Con_Printf( "Xash3D GameCube: menuplaystart gc_playstart queued\n" );
+			}
+			else
+			{
+				UI_Main_Menu();
+				Con_Printf( "Xash3D GameCube: main menu opened\n" );
+			}
+#else
 			UI_Main_Menu();
-#if XASH_GAMECUBE
-			Con_Printf( "Xash3D GameCube: main menu opened\n" );
 #endif
 		}
 
@@ -1292,6 +1308,9 @@ void UI_Init( void )
 	 * buttons — retail Half-Life uses gfx/shell/btns_main.bmp. LoadBmpButtons
 	 * falls back cleanly if the atlas cannot be uploaded. */
 	uiStatic.lowmemory = 1;
+	/* DoD's slim per-button TGAs are already staged on disc. Use those retail
+	 * strips for the main menu instead of redrawing their labels with the
+	 * coarse console font. */
 	uiStatic.renderPicbuttonText = false;
 	Con_Printf( "Xash3D GameCube: mainui retail picbuttons enabled (lowmem=%d)\n",
 		uiStatic.lowmemory );

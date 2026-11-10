@@ -426,7 +426,14 @@ void CMenuBackgroundBitmap::LoadBackground()
 
 #if XASH_GAMECUBE
 	/* Retail menu needs the Steam tile background even in low-memory builds.
-	 * The GX software upload path clamps UI textures to fit MEM1. */
+	 * The GX software upload path clamps UI textures to fit MEM1.
+	 * Menu New Game probes (-gcmenuplaystart) must not spend ~225 KiB tip on
+	 * steam tiles — UI_Main_Menu then hung loading btn_*.tga (221435). */
+	if( EngFuncs::GetCvarFloat( "gc_menuplaystart" ) >= 1.0f )
+	{
+		Con_Printf( "Xash3D GameCube: menuplaystart lean menu bg (skip steam tiles)\n" );
+		return;
+	}
 #else
 	if( uiStatic.lowmemory )
 		return;
