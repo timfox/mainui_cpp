@@ -51,7 +51,6 @@ bool CMenuItemsHolder::Key( const int key, const bool down )
 			item = m_pItemAtCursorOnDown;
 		m_pItemAtCursorOnDown = NULL;
 	}
-
 	if( item && item->IsVisible() && !(item->iFlags & (QMF_GRAYED|QMF_INACTIVE) ) )
 	{
 		// mouse keys must be checked for item bounds on press

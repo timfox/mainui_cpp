@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Action.h"
 #include "YesNoMessageBox.h"
 #include "Table.h"
+#include <new>
 
 #define ART_BANNER		"gfx/shell/head_creategame"
 
@@ -70,7 +71,8 @@ public:
 class CMenuCreateGame : public CMenuFramework
 {
 public:
-	CMenuCreateGame() : CMenuFramework("CMenuCreateGame"), mapsListModel( this ) { }
+	CMenuCreateGame() : CMenuFramework("CMenuCreateGame"), mapsListModel( this )
+	{ }
 	static void Begin( CMenuBaseItem *pSelf, void *pExtra );
 
 	void Show() override;
@@ -118,9 +120,13 @@ void CMenuCreateGame::Begin( CMenuBaseItem *pSelf, void *pExtra )
 	}
 
 	const char *mapName = menu->mapsListModel[item].name;
+	Con_Printf( "Xash3D GameCube: CreateGame Begin map=%s clients=%s active=%d\n",
+		mapName, menu->maxClients.GetBuffer(), CL_IsActive() );
 
+#if !XASH_GAMECUBE
 	if( !EngFuncs::IsMapValid( mapName ))
 		return;	// bad map
+#endif
 
 	const char *maxPlayersBuf = menu->maxClients.GetBuffer();
 	int players = atoi( maxPlayersBuf );
@@ -150,17 +156,32 @@ void CMenuCreateGame::Begin( CMenuBaseItem *pSelf, void *pExtra )
 	const char *listenservercfg = EngFuncs::GetCvarString( "lservercfgfile" );
 
 	char cmd[1024];
+#if !XASH_GAMECUBE
 	snprintf( cmd, sizeof( cmd ), "exec %s\n", listenservercfg );
 	EngFuncs::ClientCmd( true, cmd );
+#endif
 
 	// dirty listenserver config form old xash may rewrite maxplayers
 	menu->maxClients.WriteCvar();
 
-	// hack: wait three frames allowing server to completely shutdown, reapply maxplayers and start new map
+	// wait three frames allowing server to completely shutdown, reapply maxplayers and start map
 	char cmd2[256];
 	Com_EscapeCommand( cmd2, mapName, sizeof( cmd2 ));
+#if XASH_GAMECUBE
+	/* Run the dedicated GameCube startup path now: it trims the menu/client
+	 * allocations, paints the loading screen, then starts the local server. */
+	snprintf( cmd, sizeof( cmd ), "gc_playstart %s\n", cmd2 );
+	Con_Printf( "Xash3D GameCube: CreateGame direct play start map=%s\n", mapName );
+	EngFuncs::ClientCmd( true, cmd );
+	snprintf( cmd, sizeof( cmd ), "exec %s\n", listenservercfg );
+	EngFuncs::ClientCmd( true, cmd );
+#else
 	snprintf( cmd, sizeof( cmd ), "disconnect;menu_connectionprogress localserver;wait;wait;wait;maxplayers %i;latch;map %s\n", atoi( menu->maxClients.GetBuffer() ), cmd2 );
 	EngFuncs::ClientCmd( false, cmd );
+#endif
+#if XASH_GAMECUBE
+	Con_Printf( "Xash3D GameCube: CreateGame start command returned map=%s\n", mapName );
+#endif
 }
 
 /*
@@ -266,8 +287,13 @@ void CMenuCreateGame::_Init( void )
 		if( buf[0] == 0 ) return;
 
 		int players = atoi( buf );
+		#if XASH_GAMECUBE
+		if( players < 2 || players > 2 )
+			self->SetBuffer( "2" ); // two BSS-backed clients fit the GameCube listen server
+		#else
 		if( players > MAX_CLIENTS )
 			self->SetBuffer( MAX_CLIENTS_STRING() );
+		#endif
 	});
 	SET_EVENT_MULTI( maxClients.onCvarGet,
 	{
@@ -278,10 +304,15 @@ void CMenuCreateGame::_Init( void )
 		const char *buf = self->GetBuffer();
 
 		int players = atoi( buf );
+		#if XASH_GAMECUBE
+		if( players != 2 )
+			self->SetBuffer( "2" );
+		#else
 		if( players <= 1 )
 			self->SetBuffer( "16" );
 		else if( players > MAX_CLIENTS )
 			self->SetBuffer( MAX_CLIENTS_STRING() );
+		#endif
 	});
 	maxClients.LinkCvar( "maxplayers" );
 
@@ -385,7 +416,12 @@ bool CMenuCreateGame::KeyDown( int key )
 		if( n > 0 ) mapsList.SetCurrentIndex( ( i + ( UI::Key::IsRightArrow( key ) ? 1 : n - 1 ) ) % n );
 		return true;
 	}
-	if( UI::Key::IsEnter( key ) || key == 'A' ) { if( CL_IsActive() ) msgBox.Show(); else Begin( done, NULL ); return true; }
+	if( UI::Key::IsEnter( key ) || key == 'A' )
+	{
+		Con_Printf( "Xash3D GameCube: CreateGame confirm active=%d\n", CL_IsActive() );
+		if( CL_IsActive() ) msgBox.Show(); else Begin( done, NULL );
+		return true;
+	}
 	return CMenuFramework::KeyDown( key );
 }
 
@@ -449,4 +485,32 @@ void CMenuCreateGame::Reload( void )
 	mapsList.SetCurrentIndex( 0 );
 }
 
-ADD_MENU( menu_creategame, CMenuCreateGame, UI_CreateGame_Menu );
+/* Keep storage for this 6.5 KiB form out of the small GameCube menu heap.
+ * Construct it on first use, after the UI runtime has initialized. */
+alignas( CMenuCreateGame ) static unsigned char menuCreateGameStorage[sizeof( CMenuCreateGame )];
+static CMenuCreateGame *menu_creategame = NULL;
+
+static void menu_creategame_Precache( void )
+{
+	if( !menu_creategame )
+	{
+		menu_creategame = new ( menuCreateGameStorage ) CMenuCreateGame();
+	}
+}
+
+static void menu_creategame_Shutdown( void )
+{
+	if( menu_creategame )
+	{
+		menu_creategame->~CMenuCreateGame();
+		menu_creategame = NULL;
+	}
+}
+
+ADD_MENU4( menu_creategame, menu_creategame_Precache, UI_CreateGame_Menu, menu_creategame_Shutdown );
+
+void UI_CreateGame_Menu( void )
+{
+	menu_creategame_Precache();
+	menu_creategame->Show();
+}
