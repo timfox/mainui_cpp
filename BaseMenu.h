@@ -281,6 +281,7 @@ void UI_PlayerSetup_Menu( void );
 void UI_Controls_Menu( void );
 void UI_AdvControls_Menu( void );
 void UI_GameOptions_Menu( void );
+void UI_Network_Menu( void );
 void UI_CreateGame_Menu( void );
 void UI_Audio_Menu( void );
 void UI_Video_Menu( void );
