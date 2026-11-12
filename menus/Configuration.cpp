@@ -66,7 +66,7 @@ void CMenuOptions::_Init( void )
 	AddButton( L( "GameUI_Joystick" ), L( "Change gamepad axis and button settings" ),
 		PC_GAMEPAD, UI_GamePad_Menu, QMF_NOTIFY, 'g' );
 	AddButton( L( "Network" ), L( "Set up DHCP / static IP and DNS for LAN and internet play" ),
-		PC_ADV_OPT, UI_Network_Menu, QMF_NOTIFY, 'n' );
+		PC_ADV_OPT, UI_Network_Menu, QMF_NOTIFY );
 	AddButton( L( "Update" ), L( "Check for updates" ),
 		PC_UPDATE, msgBox.MakeOpenEvent(), QMF_NOTIFY );
 	AddButton( L( "Done" ), L( "Go back to the Main menu" ),
