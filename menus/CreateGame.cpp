@@ -68,6 +68,42 @@ public:
 	CMenuCreateGame *parent;
 };
 
+/* Panel geometry shared by Draw() and mouse hit-testing, so the rows stay
+ * evenly spaced at any screen size. Everything is derived from the panel rect;
+ * nothing is allocated. */
+struct CreateGameLayout
+{
+	int x, y, pw, ph;		// panel
+	int labelX;			// left column (row labels)
+	int ctlX, ctlW;			// right column (value boxes)
+	int rowY[4];			// server name, map, max players, password
+	int rowH;
+};
+
+static CreateGameLayout CreateGame_GetLayout( void )
+{
+	CreateGameLayout l;
+	int w = gpGlobals->scrWidth, h = gpGlobals->scrHeight;
+	l.x = w * 325 / 1000;
+	l.y = h * 181 / 1000;
+	l.pw = w * 350 / 1000;
+	l.ph = h * 639 / 1000;
+	l.labelX = l.x + 12;
+	l.ctlX = l.x + l.pw * 38 / 100;
+	l.ctlW = l.x + l.pw - 14 - l.ctlX;
+	l.rowH = 19;
+
+	// four rows spread over the body of the panel (below the tab strip, above
+	// the buttons) with a capped pitch so a tall panel does not look sparse
+	int bodyTop = l.y + 38 + 14, bodyH = l.ph - 91 - 28;
+	int pitch = bodyH / 4;
+	if( pitch > 34 ) pitch = 34;
+	if( pitch < l.rowH + 6 ) pitch = l.rowH + 6;
+	for( int i = 0; i < 4; ++i )
+		l.rowY[i] = bodyTop + i * pitch;
+	return l;
+}
+
 class CMenuCreateGame : public CMenuFramework
 {
 public:
@@ -84,7 +120,6 @@ public:
 	CMenuField	maxClients;
 	CMenuField	hostName;
 	CMenuField	password;
-	CMenuCheckBox   nat;
 
 	// newgame prompt dialog
 	CMenuYesNoMessageBox msgBox;
@@ -251,9 +286,6 @@ void CMenuCreateGame::_Init( void )
 	uiStatic.needMapListUpdate = true;
 	banner.SetPicture( ART_BANNER );
 
-	nat.szName = "Enable Steam Networking";
-	nat.bChecked = true;
-
 	// add them here, so "done" button can be used by mapsListModel::Update
 	AddItem( banner );
 	CMenuPicButton *advOpt = AddButton( L( "Adv. Options" ), nullptr, PC_ADV_OPT, UI_AdvServerOptions_Menu );
@@ -336,17 +368,11 @@ void CMenuCreateGame::_Init( void )
 	AddItem( hostName );
 	AddItem( maxClients );
 	AddItem( password );
-	AddItem( nat );
 	AddItem( mapsList );
 }
 
 void CMenuCreateGame::_VidInit()
 {
-	nat.Show();
-	// if( !EngFuncs::GetCvarFloat("public") )
-	// 	nat.Hide();
-	// else nat.Show();
-
 	mapsList.SetRect( 590, 230, -20, 465 );
 	mapsList.Hide();
 
@@ -355,10 +381,9 @@ void CMenuCreateGame::_VidInit()
 	password.SetRect( 350, 460, 205, 32 );
 	hostName.Hide(); maxClients.Hide(); password.Hide();
 	banner.Hide();
-	nat.SetCoord( 225, 355 );
 	done->SetRect( 350, 535, 72, 38 );
 	cancel->SetRect( 425, 535, 72, 38 );
-	mapsList.Hide(); nat.Hide(); done->Hide(); cancel->Hide();
+	mapsList.Hide(); done->Hide(); cancel->Hide();
 }
 
 void CMenuCreateGame::Draw()
@@ -385,21 +410,29 @@ void CMenuCreateGame::Draw()
 	UI_DrawString( uiStatic.hDefaultFont, x + 8, y + 29, 56, 14, "Server", PackRGBA( 205, 190, 66, 255 ), fs, QM_LEFT, textFlags );
 	UI_DrawString( uiStatic.hDefaultFont, x + 69, y + 32, 48, 13, "Game", uiColorWhite, fs, QM_LEFT, textFlags );
 	UI_DrawRectangleExt( x + 5, y + 27, 60, 22, PackRGBA( 139, 148, 127, 255 ), 1 );
-	int mx = x + 35, my = y + 56, mw = pw * 43 / 100;
-	UI_DrawString( uiStatic.hDefaultFont, x + 6, my + 2, 28, 12, "Map", PackRGBA( 205, 190, 66, 255 ), fs, QM_LEFT, textFlags );
-	EngFuncs::FillRGBA( mx, my, mw, 19, 57, 68, 54, 255 );
-	UI_DrawRectangleExt( mx, my, mw, 19, PackRGBA( 139, 148, 127, 255 ), 1 );
+	CreateGameLayout L = CreateGame_GetLayout();
+	const uint labelCol = PackRGBA( 205, 190, 66, 255 );
+	static const char *const labels[4] = { "Server name", "Map", "Max players", "Password" };
+	char passMask[17];
 	int index = mapsList.GetCurrentIndex();
 	const char *map = index <= 0 || !mapsListModel.IsValidIndex( index ) ? "< Random Map >" : mapsListModel.Element( index ).name;
-	UI_DrawString( uiStatic.hDefaultFont, mx + 3, my + 3, mw - 8, 13, map, uiColorWhite, fs, QM_LEFT, textFlags );
-	int arrowX = mx + mw - 7, arrowY = my + 7;
+	const char *pass = password.GetBuffer();
+	int pn = 0;
+	for( ; pass && pass[pn] && pn < 16; ++pn ) passMask[pn] = '*';
+	passMask[pn] = 0;
+	const char *values[4] = { hostName.GetBuffer(), map, maxClients.GetBuffer(), passMask };
+	for( int i = 0; i < 4; ++i )
+	{
+		int ry = L.rowY[i];
+		UI_DrawString( uiStatic.hDefaultFont, L.labelX, ry + 3, L.ctlX - L.labelX - 4, 13, labels[i], labelCol, fs, QM_LEFT, textFlags );
+		EngFuncs::FillRGBA( L.ctlX, ry, L.ctlW, L.rowH, 57, 68, 54, 255 );
+		UI_DrawRectangleExt( L.ctlX, ry, L.ctlW, L.rowH, PackRGBA( 139, 148, 127, 255 ), 1 );
+		UI_DrawString( uiStatic.hDefaultFont, L.ctlX + 4, ry + 3, L.ctlW - 8, 13, values[i] ? values[i] : "", uiColorWhite, fs, QM_LEFT, textFlags );
+	}
+	// selector arrow on the map row
+	int arrowX = L.ctlX + L.ctlW - 8, arrowY = L.rowY[1] + 8;
 	for( int i = 0; i < 3; ++i )
 		EngFuncs::FillRGBA( arrowX - i, arrowY + i, 1 + i * 2, 1, 174, 178, 165, 255 );
-	int cx = x + 17, cy = y + 96;
-	EngFuncs::FillRGBA( cx, cy, 11, 11, 100, 105, 95, 255 );
-	UI_DrawRectangleExt( cx, cy, 11, 11, PackRGBA( 139, 148, 127, 255 ), 1 );
-	EngFuncs::FillRGBA( cx + 2, cy + 6, 7, 2, 235, 235, 225, 255 );
-	UI_DrawString( uiStatic.hDefaultFont, cx + 17, cy, pw - 28, 13, "Enable Steam Networking", PackRGBA( 205, 190, 66, 255 ), fs, QM_LEFT, textFlags );
 	int by = y + ph - 38, sx = x + pw - 76, kx = x + pw - 39;
 	EngFuncs::FillRGBA( sx, by, 36, 16, 65, 77, 61, 255 ); EngFuncs::FillRGBA( kx, by, 36, 16, 65, 77, 61, 255 );
 	UI_DrawRectangleExt( sx, by, 36, 16, PackRGBA( 139, 148, 127, 255 ), 1 ); UI_DrawRectangleExt( kx, by, 36, 16, PackRGBA( 139, 148, 127, 255 ), 1 );
@@ -442,8 +475,9 @@ bool CMenuCreateGame::KeyUp( int key )
 			if( uiStatic.cursorX >= x + pw - 76 && uiStatic.cursorX <= x + pw - 40 ) { if( CL_IsActive() ) msgBox.Show(); else Begin( done, NULL ); return true; }
 			if( uiStatic.cursorX >= x + pw - 39 && uiStatic.cursorX <= x + pw - 3 ) { Hide(); return true; }
 		}
-		int mx = x + 35, my = y + 56, mw = pw * 43 / 100, n = mapsListModel.Count();
-		if( n > 0 && uiStatic.cursorX >= mx && uiStatic.cursorX <= mx + mw && uiStatic.cursorY >= my && uiStatic.cursorY <= my + 22 )
+		CreateGameLayout L = CreateGame_GetLayout();
+		int mx = L.ctlX, my = L.rowY[1], mw = L.ctlW, n = mapsListModel.Count();
+		if( n > 0 && uiStatic.cursorX >= mx && uiStatic.cursorX <= mx + mw && uiStatic.cursorY >= my && uiStatic.cursorY <= my + L.rowH )
 		{
 			int i = mapsList.GetCurrentIndex();
 			mapsList.SetCurrentIndex( ( i + ( uiStatic.cursorX > mx + mw / 2 ? 1 : n - 1 ) ) % n );
@@ -475,8 +509,7 @@ void CMenuCreateGame::SaveCvars()
 	UI_SetScriptCvar( "maxplayers", maxClients.GetBuffer() );
 	UI_SetScriptCvar( "sv_password", password.GetBuffer() );
 
-	EngFuncs::CvarSetValue( "sv_nat", 0 );
-	// EngFuncs::CvarSetValue( "sv_nat", EngFuncs::GetCvarFloat( "public" ) ? nat.bChecked : 0 );
+	EngFuncs::CvarSetValue( "sv_nat", 0 );	// Steam networking is not available on GameCube
 }
 
 void CMenuCreateGame::Reload( void )
