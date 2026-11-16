@@ -481,6 +481,7 @@ ADD_MENU3( menu_useroptions, CMenuScriptConfig, UI_AdvUserOptions_Menu );
 
 void UI_AdvServerOptions_Menu()
 {
+	menu_serveroptions_Precache();
 	menu_serveroptions->banner.SetPicture( ART_BANNER_SERVER );
 	menu_serveroptions->szName = L( "Server Options" );
 	menu_serveroptions->Show();
@@ -488,6 +489,7 @@ void UI_AdvServerOptions_Menu()
 
 void UI_AdvUserOptions_Menu()
 {
+	menu_useroptions_Precache();
 	menu_useroptions->banner.SetPicture( ART_BANNER_USER );
 	menu_useroptions->szName = L( "GameUI_MultiplayerAdvanced" );
 	menu_useroptions->Show();
@@ -496,6 +498,8 @@ void UI_AdvUserOptions_Menu()
 void UI_LoadScriptConfig()
 {
 	// yes, create cvars if needed
+	menu_serveroptions_Precache();
+	menu_useroptions_Precache();
 	menu_serveroptions->SetScriptConfig( "settings.scr", true, true );
 	menu_useroptions->SetScriptConfig( "user.scr", false, true );
 }
@@ -558,10 +562,10 @@ void UI_SetScriptCvar( const char *name, const char *value )
 
 bool UI_AdvUserOptions_IsAvailable()
 {
-	return menu_useroptions->m_pVars != NULL;
+	return menu_useroptions && menu_useroptions->m_pVars != NULL;
 }
 
 bool UI_AdvServerOptions_IsAvailable()
 {
-	return menu_serveroptions->m_pVars != NULL;
+	return menu_serveroptions && menu_serveroptions->m_pVars != NULL;
 }

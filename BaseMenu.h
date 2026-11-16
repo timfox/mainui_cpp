@@ -247,11 +247,12 @@ public:
 	static type * cmd = NULL; \
 	static void cmd##_Precache( void ) \
 	{ \
-		cmd = new type(); \
+		if( !cmd ) cmd = new type(); \
 	} \
 	static void cmd##_Shutdown( void ) \
 	{ \
 		delete cmd; \
+		cmd = NULL; \
 	} \
 	ADD_MENU4( cmd, cmd##_Precache, showfunc, cmd##_Shutdown )
 
@@ -260,6 +261,7 @@ public:
 	ADD_MENU3( cmd, type, showfunc ); \
 	void showfunc( void ) \
 	{ \
+		cmd##_Precache(); \
 		cmd->Show(); \
 	}
 

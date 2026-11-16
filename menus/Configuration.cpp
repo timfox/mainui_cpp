@@ -73,4 +73,10 @@ void CMenuOptions::_Init( void )
 		PC_DONE, VoidCb( &CMenuOptions::Hide ), QMF_NOTIFY );
 }
 
-ADD_MENU( menu_options, CMenuOptions, UI_Options_Menu );
+ADD_MENU3( menu_options, CMenuOptions, UI_Options_Menu );
+void UI_Options_Menu( void )
+{
+	menu_options_Precache();
+	Con_Printf( "Xash3D GameCube: retail menu options opened\n" );
+	menu_options->Show();
+}

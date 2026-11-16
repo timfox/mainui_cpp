@@ -28,6 +28,27 @@ CBitmapFont::~CBitmapFont() { }
 // redefine in specific ports
 #define MAINUI_CONSOLE_FONT_HEIGHT 10
 #endif
+#if XASH_GAMECUBE
+/* Proportional advance: the engine console font's own width for this glyph,
+ * scaled to charH.  A fixed charH/2 box squeezed wide glyphs and spaced the
+ * narrow ones out ("S t a r t  a  n e w"), unlike the PC menu. */
+static int GC_BitmapCharWidth( int ch, int charH )
+{
+	char str[2] = { (char)ch, 0 };
+	int w = 0, h = 0;
+
+	EngFuncs::engfuncs.pfnDrawConsoleStringLen( str, &w, &h );
+	if( w <= 0 || h <= 0 )
+		return Q_max( 1, charH / 2 );
+	w = ( w * charH + h / 2 ) / h;
+	/* The lean console atlas reports near-zero widths for ' ' and '.';
+	 * floor them so words and sentence ends stay readable. */
+	if( ch == ' ' )
+		return Q_max( w, Q_max( 2, charH / 3 ));
+	return Q_max( w, Q_max( 1, charH / 4 ));
+}
+#endif
+
 bool CBitmapFont::Create(const char *name, int tall, int weight, int blur, float brighten, int outlineSize, int scanlineOffset, float scanlineScale, int flags)
 {
 	Q_strncpy( m_szName, name, sizeof( m_szName ) );
@@ -44,6 +65,11 @@ bool CBitmapFont::Create(const char *name, int tall, int weight, int blur, float
 	m_fScanlineScale = scanlineScale;
 	m_iAscent = 0;
 	m_iMaxCharWidth = 0;
+#if XASH_GAMECUBE
+	/* Keep tall as requested. Glyphs are drawn via pfnDrawCharacter(hFont=0),
+	 * which scales the already-resident credits HUD font (menufont OOMs/UVs). */
+	hImage = 0;
+#else
 #ifndef MAINUI_FORCE_CONSOLE_BITMAP_FONT
 	if( tall > UI_CONSOLE_CHAR_HEIGHT * uiStatic.scaleY )
 	{
@@ -54,6 +80,7 @@ bool CBitmapFont::Create(const char *name, int tall, int weight, int blur, float
 	else
 #endif
 		m_iHeight = m_iTall = MAINUI_CONSOLE_FONT_HEIGHT;
+#endif
 	int a, c;
 	GetCharABCWidths( '.', a, m_iEllipsisWide, c );
 	m_iEllipsisWide *= 3;
@@ -79,8 +106,12 @@ void CBitmapFont::GetCharABCWidths(int ch, int &a, int &b, int &c)
 		b = m_iHeight/2-1;
 	else
 	{
+#if XASH_GAMECUBE
+		b = GC_BitmapCharWidth( ch, m_iTall );
+#else
 		char str[2] = {(char)ch, 0};
 		EngFuncs::engfuncs.pfnDrawConsoleStringLen( str, &b, NULL );
+#endif
 	}
 }
 
@@ -146,9 +177,16 @@ int CBitmapFont::DrawCharacter(int ch, Point pt, int charH, const unsigned int c
 	}
 	else
 	{
+#if XASH_GAMECUBE
+		/* Scale the resident credits HUD font to charH, glyph proportions kept. */
+		const int w = GC_BitmapCharWidth( ch, charH );
+		EngFuncs::DrawCharacter( pt.x, pt.y, w, charH, ch, (int)color, 0 );
+		return w;
+#else
 		char str[2] = {(char)ch, 0};
 		EngFuncs::engfuncs.pfnDrawSetTextColor( Red( color ), Green( color ), Blue( color ), Alpha( color ) );
 
 		return EngFuncs::engfuncs.pfnDrawConsoleString( pt.x, pt.y, str ) - pt.x;
+#endif
 	}
 }

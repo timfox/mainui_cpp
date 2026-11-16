@@ -27,7 +27,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "keydefs.h"
 #include "MenuStrings.h"
 
+#if XASH_GAMECUBE
+#define ART_BANNER		"resource/gc_menu/head_newgame.tga"
+#else
 #define ART_BANNER		"gfx/shell/head_newgame"
+#endif
 
 class CMenuNewGame : public CMenuFramework
 {
@@ -38,10 +42,16 @@ public:
 	{
 		if( gMenu.m_gameinfo.flags & GFL_NOSKILLS )
 		{
+#if XASH_GAMECUBE
+			Con_Printf( "Xash3D GameCube: newgame difficulty skipped (noskills)\n" );
+#endif
 			StartGame( 1.0f );
 			return;
 		}
 
+#if XASH_GAMECUBE
+		Con_Printf( "Xash3D GameCube: newgame difficulty menu show\n" );
+#endif
 		CMenuFramework::Show();
 	}
 
@@ -119,9 +129,21 @@ void CMenuNewGame::_Init( void )
 	hardCallback = StartGameCb;
 	hardCallback.pExtra = (void *)3;
 
+#if XASH_GAMECUBE
+	/* Slim gc_menu strips — full btns_main atlas is skipped on GameCube.
+	 * Use alias-filled help strings (Play Half-Life on 'easy'…). */
+	CMenuPicButton *easy = AddButton( L( "GameUI_Easy" ), L( "StringsList_200" ),
+		"resource/gc_menu/btn_easy.tga", easyCallback, QMF_NOTIFY, 'e' );
+	CMenuPicButton *norm = AddButton( L( "GameUI_Medium" ), L( "StringsList_201" ),
+		"resource/gc_menu/btn_medium.tga", normCallback, QMF_NOTIFY, 'm' );
+	CMenuPicButton *hard = AddButton( L( "GameUI_Hard" ), L( "StringsList_202" ),
+		"resource/gc_menu/btn_hard.tga", hardCallback, QMF_NOTIFY, 'd' );
+	Con_Printf( "Xash3D GameCube: newgame difficulty strips init\n" );
+#else
 	CMenuPicButton *easy = AddButton( L( "GameUI_Easy" ), L( "StringsList_200" ), PC_EASY, easyCallback, QMF_NOTIFY );
 	CMenuPicButton *norm = AddButton( L( "GameUI_Medium" ), L( "StringsList_201" ), PC_MEDIUM, normCallback, QMF_NOTIFY );
 	CMenuPicButton *hard = AddButton( L( "GameUI_Hard" ), L( "StringsList_202" ), PC_DIFFICULT, hardCallback, QMF_NOTIFY );
+#endif
 
 	easy->onReleasedClActive =
 		norm->onReleasedClActive =
@@ -130,7 +152,12 @@ void CMenuNewGame::_Init( void )
 	norm->onReleasedClActive.pExtra = &normCallback;
 	hard->onReleasedClActive.pExtra = &hardCallback;
 
+#if XASH_GAMECUBE
+	AddButton( L( "GameUI_Cancel" ), L( "Go back to the Main menu" ),
+		"resource/gc_menu/btn_cancel.tga", VoidCb( &CMenuNewGame::Hide ), QMF_NOTIFY, 'c' );
+#else
 	AddButton( L( "GameUI_Cancel" ), L( "Go back to the Main menu" ), PC_CANCEL, VoidCb( &CMenuNewGame::Hide ), QMF_NOTIFY );
+#endif
 
 	startDemoChapter.SetCoord( 72, 230 + m_iBtnsNum * 50 );
 	startDemoChapter.SetNameAndStatus( L( "GameUI_PlayGame_Alt" ), L( "Play the demo chapter on selected difficulty" ));

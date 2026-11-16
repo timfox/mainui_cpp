@@ -75,9 +75,33 @@ void CFontManager::VidInit( void )
 	)
 	{
 		DeleteAllFonts();
-		uiStatic.hDefaultFont = CFontBuilder( DEFAULT_MENUFONT, UI_MED_CHAR_HEIGHT * scale, DEFAULT_WEIGHT )
+#if XASH_GAMECUBE
+		Con_Printf( "Xash3D GameCube: mainui font vidinit scale=%.3f lowmemory=%d\n",
+			scale, uiStatic.lowmemory );
+		/* 320x240 yields ~8px at the normal scale; 18px reads on TV without dominating. */
+		const int med_tall = Q_max( 18, (int)( UI_MED_CHAR_HEIGHT * scale + 0.5f ));
+		/* Help/status text at the PC menu's size: 18 * scale, i.e. ~11px of a
+		 * 640x480 screen (this was clamped to 12 units = 24px of the TV
+		 * frame, over twice the WON size). */
+		const int con_tall = Q_max( 6, (int)( UI_CONSOLE_CHAR_HEIGHT * scale + 0.5f ));
+#else
+		const int med_tall = (int)( UI_MED_CHAR_HEIGHT * scale + 0.5f );
+		const int con_tall = (int)( UI_CONSOLE_CHAR_HEIGHT * scale + 0.5f );
+#endif
+		uiStatic.hDefaultFont = CFontBuilder( DEFAULT_MENUFONT, med_tall, DEFAULT_WEIGHT )
 			.SetHandleNum( QM_DEFAULTFONT )
 			.Create();
+#if XASH_GAMECUBE
+		Con_Printf( "Xash3D GameCube: mainui font default handle=%d tall=%d\n",
+			uiStatic.hDefaultFont, med_tall );
+		/* One menu font + console font: blur/small/big/bold atlases blow the MEM1 budget
+		 * before retail background tiles can load. PicButtons use the low-memory text path. */
+		uiStatic.hSmallFont = uiStatic.hDefaultFont;
+		uiStatic.hBigFont = uiStatic.hDefaultFont;
+		uiStatic.hBoldFont = uiStatic.hDefaultFont;
+		uiStatic.hLightBlur = 0;
+		uiStatic.hHeavyBlur = 0;
+#else
 		uiStatic.hSmallFont   = CFontBuilder( DEFAULT_MENUFONT, UI_SMALL_CHAR_HEIGHT * scale, DEFAULT_WEIGHT )
 			.SetHandleNum( QM_SMALLFONT )
 			.Create();
@@ -98,10 +122,15 @@ void CFontManager::VidInit( void )
 				.SetBlurParams( 8 * scale, 2.0f )
 				.Create();
 		}
+#endif
 
-		uiStatic.hConsoleFont = CFontBuilder( DEFAULT_CONFONT, UI_CONSOLE_CHAR_HEIGHT * scale, 500 )
+		uiStatic.hConsoleFont = CFontBuilder( DEFAULT_CONFONT, con_tall, 500 )
 			.SetOutlineSize()
 			.Create();
+#if XASH_GAMECUBE
+		Con_Printf( "Xash3D GameCube: mainui font console handle=%d tall=%d\n",
+			uiStatic.hConsoleFont, con_tall );
+#endif
 		prevScale = scale;
 	}
 }
@@ -487,7 +516,11 @@ HFont CFontBuilder::Create()
 		}
 	}
 
-#if defined(MAINUI_USE_FREETYPE)
+#if XASH_GAMECUBE
+	/* FreeType/STB TTF create stalls Dolphin New Game boots before gc_playstart.
+	 * Bitmap fonts are enough for the GC menu and keep MEM1 free for the map. */
+	font = new CBitmapFont();
+#elif defined(MAINUI_USE_FREETYPE)
 	font = new CFreeTypeFont();
 #elif defined(MAINUI_USE_STB)
 	font = new CStbFont();
@@ -498,9 +531,23 @@ HFont CFontBuilder::Create()
 #endif
 
 	double starttime = EngFuncs::DoubleTime();
+#if XASH_GAMECUBE
+	Con_Printf( "Xash3D GameCube: mainui create font name=%s tall=%d weight=%d blur=%d outline=%d flags=%d\n",
+		m_szName, m_iTall, m_iWeight, m_iBlur, m_iOutlineSize, m_iFlags );
+#endif
 
-	if( !font->Create( m_szName, m_iTall, m_iWeight, m_iBlur, m_fBrighten, m_iOutlineSize, m_iScanlineOffset, m_fScanlineScale, m_iFlags ) )
+	if( !font->Create(
+#if XASH_GAMECUBE
+		"Bitmap Font",
+#else
+		m_szName,
+#endif
+		m_iTall, m_iWeight, m_iBlur, m_fBrighten, m_iOutlineSize, m_iScanlineOffset, m_fScanlineScale, m_iFlags ) )
 	{
+#if XASH_GAMECUBE
+		Con_Printf( "Xash3D GameCube: mainui font create fallback name=%s tall=%d weight=%d\n",
+			m_szName, m_iTall, m_iWeight );
+#endif
 		delete font;
 
 		// fallback to bitmap font

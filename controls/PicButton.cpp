@@ -216,7 +216,13 @@ CMenuPicButton::DrawButton
 void CMenuPicButton::DrawButton( int r, int g, int b, int a, wrect_t *rects, int state )
 {
 	EngFuncs::PIC_Set( hPic, r, g, b, a );
+#if XASH_GAMECUBE
+	/* Soft/YUV DumpFrames chroma-fringe thin additive strokes. Prefer
+	 * translucent color-key so black stays out and orange ink stays opaque. */
+	EngFuncs::PIC_DrawTrans( m_scPos, uiStatic.buttons_draw_size.Scale(), &rects[state] );
+#else
 	EngFuncs::PIC_DrawAdditive( m_scPos, uiStatic.buttons_draw_size.Scale(), &rects[state] );
+#endif
 }
 
 /*
@@ -242,16 +248,26 @@ void CMenuPicButton::Draw( )
 
 	if( szStatusText && FBitSet( iFlags, QMF_NOTIFY ) && !FBitSet( gMenu.m_gameinfo.flags, GFL_NOSKILLS ))
 	{
-		Point coord;
+#if XASH_GAMECUBE
+		/* Soft-font DumpFrames shred when every row paints help text. Retail
+		 * only needs the focused item's status on the right. */
+		if( state == BUTTON_FOCUS || state == BUTTON_PRESSED )
+#endif
+		{
+			Point coord;
 
-		coord.x = m_scPos.x + ( uiStatic.buttons_draw_size.w + 40 ) * uiStatic.scaleX;
-		coord.y = m_scPos.y + m_scSize.h / 2 - EngFuncs::ConsoleCharacterHeight() / 2;
+			/* WON: the focused button's description sits just right of the
+			 * button art (same offset on GameCube; the old +160 pushed it
+			 * past the art column into the background). */
+			coord.x = m_scPos.x + ( uiStatic.buttons_draw_size.w + 40 ) * uiStatic.scaleX;
+			coord.y = m_scPos.y + m_scSize.h / 2 - EngFuncs::ConsoleCharacterHeight() / 2;
 
-		int	r, g, b;
+			int	r, g, b;
 
-		UnpackRGB( r, g, b, uiColorHelp );
-		EngFuncs::DrawSetTextColor( r, g, b );
-		EngFuncs::DrawConsoleString( coord, szStatusText );
+			UnpackRGB( r, g, b, uiColorHelp );
+			EngFuncs::DrawSetTextColor( r, g, b );
+			EngFuncs::DrawConsoleString( coord, szStatusText );
+		}
 	}
 
 	int a = (512 - (uiStatic.realTime - m_iLastFocusTime)) >> 1;
@@ -281,6 +297,13 @@ void CMenuPicButton::Draw( )
 			}
 		}
 
+#if XASH_GAMECUBE
+		/* PC stacks FOCUS+NOFOCUS for additive glow. Each strip state already
+		 * carries its own art (idle / glow / pressed); stacking both through
+		 * Trans/soft RGB565 paints a doubled orange+fringe ghost. */
+		(void)a;
+		DrawButton( r, g, b, 255, rects, state );
+#else
 		// decay
 		if( state == BUTTON_NOFOCUS && a > 0 )
 		{
@@ -307,6 +330,7 @@ void CMenuPicButton::Draw( )
 			// just draw
 			DrawButton( r, g, b, 255, rects, state );
 		}
+#endif
 	}
 	else if( !uiStatic.lowmemory )
 	{
@@ -354,27 +378,42 @@ void CMenuPicButton::Draw( )
 	else
 	{
 		uint textflags = ETF_NOSIZELIMIT | ETF_FORCECOL;
+		int ch = m_scChSize;
+#if XASH_GAMECUBE
+		/* Match the TV-readable floor used when baking the default menu font. */
+		ch = Q_max( ch, 18 );
+		if( szName && szName[0] )
+		{
+			static bool s_logged_text;
+			if( !s_logged_text )
+			{
+				Con_Printf( "Xash3D GameCube: retail menu button text ready ch=%d color=0x%08X name=%s\n",
+					ch, (unsigned int)colorBase, szName );
+				s_logged_text = true;
+			}
+		}
+#endif
 
 		SetBits( textflags, (iFlags & QMF_DROPSHADOW) ? ETF_SHADOW : 0 );
 
 		if( iFlags & QMF_GRAYED )
 		{
-			UI_DrawString( font, m_scPos, m_scSize, szName, uiColorDkGrey, m_scChSize, eTextAlignment, textflags );
+			UI_DrawString( font, m_scPos, m_scSize, szName, uiColorDkGrey, ch, eTextAlignment, textflags );
 		}
 		else if( this != m_pParent->ItemAtCursor() )
 		{
-			UI_DrawString( font, m_scPos, m_scSize, szName, colorBase, m_scChSize, eTextAlignment, textflags );
+			UI_DrawString( font, m_scPos, m_scSize, szName, colorBase, ch, eTextAlignment, textflags );
 		}
 		else if( eFocusAnimation == QM_HIGHLIGHTIFFOCUS )
 		{
-			UI_DrawString( font, m_scPos, m_scSize, szName, colorFocus, m_scChSize, eTextAlignment, textflags );
+			UI_DrawString( font, m_scPos, m_scSize, szName, colorFocus, ch, eTextAlignment, textflags );
 		}
 		else if( eFocusAnimation == QM_PULSEIFFOCUS )
 		{
 			float pulsar = 0.5f + 0.5f * sin( (float)uiStatic.realTime / UI_PULSE_DIVISOR );
 
 			UI_DrawString( font, m_scPos, m_scSize, szName,
-				InterpColor( colorBase, colorFocus, pulsar ), m_scChSize, eTextAlignment, textflags );
+				InterpColor( colorBase, colorFocus, pulsar ), ch, eTextAlignment, textflags );
 		}
 	}
 
@@ -394,7 +433,14 @@ void CMenuPicButton::SetPicture( EDefaultBtns ID )
 void CMenuPicButton::SetPicture( const char *filename, int hk )
 {
 	hPic = EngFuncs::PIC_Load( filename );
+	button_id = -1; /* file strips use PIC size thirds, not btns atlas */
 	hotkey = hk;
+#if XASH_GAMECUBE
+	if( hPic )
+		Con_Printf( "Xash3D GameCube: retail menu btn strip ready %s\n", filename );
+	else
+		Con_Printf( "Xash3D GameCube: retail menu btn strip miss %s\n", filename );
+#endif
 }
 
 bool CMenuPicButton::HotKey( int key )

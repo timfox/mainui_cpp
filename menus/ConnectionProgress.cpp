@@ -155,7 +155,7 @@ bool CMenuConnectionProgress::KeyDown( int key )
 		consoleButton.onReleased( &consoleButton );
 		PlayLocalSound( uiStatic.sounds[SND_LAUNCH] );
 	}
-	else if( key == 'A' )
+	else if( key == 'A' || ( !stricmp( gMenu.m_gameinfo.gamefolder, "dod" ) && key == 'B' ) )
 	{
 		HandleDisconnect();
 	}
@@ -331,7 +331,8 @@ void CMenuConnectionProgress::Draw( void )
 		Hide();
 		return;
 	}
-	UI_FillRect( 0,0, gpGlobals->scrWidth, gpGlobals->scrHeight, m_iState == STATE_NONE ? 0xFF000000 : 0x40000000 );
+	if( stricmp( gMenu.m_gameinfo.gamefolder, "dod" ) )
+		UI_FillRect( 0,0, gpGlobals->scrWidth, gpGlobals->scrHeight, m_iState == STATE_NONE ? 0xFF000000 : 0x40000000 );
 	CMenuBaseWindow::Draw();
 }
 
@@ -340,11 +341,13 @@ ADD_MENU3( menu_connectionprogress, CMenuConnectionProgress, UI_ConnectionProgre
 // exports
 void UI_ConnectionProgress_Disconnect( void )
 {
+	menu_connectionprogress_Precache();
 	menu_connectionprogress->HandleDisconnect();
 }
 
 void UI_ConnectionProgress_Download( const char *pszFileName, const char *pszServerName, int iCurrent, int iTotal, const char *comment )
 {
+	menu_connectionprogress_Precache();
 	if( menu_connectionprogress->m_iState == STATE_CONSOLE )
 		return;
 
@@ -354,6 +357,7 @@ void UI_ConnectionProgress_Download( const char *pszFileName, const char *pszSer
 
 void UI_ConnectionProgress_DownloadEnd( void )
 {
+	menu_connectionprogress_Precache();
 	if( menu_connectionprogress->m_iState == STATE_CONSOLE )
 		return;
 
@@ -364,6 +368,7 @@ void UI_ConnectionProgress_DownloadEnd( void )
 
 void UI_ConnectionProgress_Precache( void )
 {
+	menu_connectionprogress_Precache();
 	if( menu_connectionprogress->m_iState == STATE_CONSOLE )
 		return;
 
@@ -373,6 +378,7 @@ void UI_ConnectionProgress_Precache( void )
 
 void UI_ConnectionProgress_Connect( const char *server ) // NULL for local server
 {
+	menu_connectionprogress_Precache();
 	if( menu_connectionprogress->m_iState == STATE_CONSOLE )
 		return;
 
@@ -383,6 +389,7 @@ void UI_ConnectionProgress_Connect( const char *server ) // NULL for local serve
 
 void UI_ConnectionProgress_ChangeLevel( void )
 {
+	menu_connectionprogress_Precache();
 	if( menu_connectionprogress->m_iState == STATE_CONSOLE )
 		return;
 
@@ -393,6 +400,7 @@ void UI_ConnectionProgress_ChangeLevel( void )
 
 void UI_ConnectionProgress_ParseServerInfo( const char *server )
 {
+	menu_connectionprogress_Precache();
 	if( menu_connectionprogress->m_iState == STATE_CONSOLE )
 		return;
 
@@ -404,6 +412,7 @@ void UI_ConnectionProgress_ParseServerInfo( const char *server )
 
 void UI_ConnectionProgress_f( void )
 {
+	menu_connectionprogress_Precache();
 	if( !strcmp( EngFuncs::CmdArgv(1), "disconnect" ) )
 	{
 		UI_ConnectionProgress_Disconnect();

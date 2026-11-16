@@ -63,6 +63,7 @@ Then you can use another oneliner to query all variables:
 #undef XASH_DOS4GW
 #undef XASH_E2K
 #undef XASH_FREEBSD
+#undef XASH_GAMECUBE
 #undef XASH_HAIKU
 #undef XASH_HURD
 #undef XASH_IOS
@@ -130,6 +131,8 @@ Then you can use another oneliner to query all variables:
 		#if TARGET_OS_IOS
 			#define XASH_IOS 1
 		#endif // TARGET_OS_IOS
+	#elif defined __GAMECUBE__
+		#define XASH_GAMECUBE 1
 	#elif defined __SWITCH__
 		#define XASH_NSWITCH 1
 	#elif defined __vita__
@@ -150,7 +153,7 @@ Then you can use another oneliner to query all variables:
 // but we still need XASH_MOBILE_PLATFORM for the engine.
 // So this macro is defined entirely in build-system: see main wscript
 // HLSDK/PrimeXT/other SDKs users note: you may ignore this macro
-#if ( XASH_ANDROID && !XASH_TERMUX ) || XASH_IOS || XASH_NSWITCH || XASH_PSVITA || XASH_SAILFISH
+#if ( XASH_ANDROID && !XASH_TERMUX ) || XASH_IOS || XASH_GAMECUBE || XASH_NSWITCH || XASH_PSVITA || XASH_SAILFISH
 	#define XASH_MOBILE_PLATFORM 1
 #endif
 

@@ -34,13 +34,31 @@ CBtnsManager::LoadBmpButtons
 */
 void CBtnsManager::LoadBmpButtons()
 {
-	if( uiStatic.lowmemory || uiStatic.renderPicbuttonText )
+	if( uiStatic.renderPicbuttonText )
 		return;
+#if XASH_GAMECUBE
+	/* Full gfx/shell/btns_main.bmp is ~865 KiB and Q_malloc-spins the tip
+	 * heap after the intro. Main menu buttons use slim resource/gc_menu/btn_*.tga
+	 * strips instead (see Main.cpp). Skip the atlas here, but keep WON layout
+	 * metrics so PicButton draws strips at retail 156×26 proportions — leaving
+	 * width/height at 0 forced UI_BUTTONS_HEIGHT (inflated to 56 for TV text)
+	 * and crushed glyphs into ~17px of horizontal noise (playtest 20261105). */
+	width = 156;
+	height = 26;
+	tex_h = 26;
+	tex_stride = 26;
+	Con_Printf( "Xash3D GameCube: skip full btns_main atlas (use gc_menu btn strips)\n" );
+	return;
+#else
+	if( uiStatic.lowmemory )
+		return;
+#endif
 
 	CBMP *bmp = CBMP::LoadFile( ART_BUTTONS_MAIN );
 
 	if( bmp == nullptr )
 		return;
+
 
 	const bmp_t *hdr = bmp->GetBitmapHdr();
 	const int bpp = hdr->bitsPerPixel / 8;

@@ -591,7 +591,28 @@ void CMenuTouchButtons::_VidInit()
 	remove.SetRect( 384 - 72 + 520, 550, 170, 50 );
 }
 
-ADD_MENU3( menu_touchbuttons, CMenuTouchButtons, UI_TouchButtons_Menu );
+static CMenuTouchButtons *menu_touchbuttons = NULL;
+
+static void menu_touchbuttons_Precache( void )
+{
+#if XASH_GAMECUBE
+	/* Retail boot does not need the touch editor; keep it lazy so mainui can
+	 * reach the interactive menu within the MEM1 budget. */
+	return;
+#else
+	menu_touchbuttons = new CMenuTouchButtons();
+#endif
+}
+
+static void menu_touchbuttons_Shutdown( void )
+{
+	delete menu_touchbuttons;
+	menu_touchbuttons = NULL;
+}
+
+void UI_TouchButtons_Menu( void );
+static CMenuEntry entry_menu_touchbuttons( "menu_touchbuttons",
+	menu_touchbuttons_Precache, UI_TouchButtons_Menu, menu_touchbuttons_Shutdown );
 
 void CMenuTouchButtons::FileDialogCallback( bool success )
 {
@@ -707,17 +728,23 @@ UI_TouchButtons_Menu
 */
 void UI_TouchButtons_Menu( void )
 {
+	if( !menu_touchbuttons )
+		menu_touchbuttons = new CMenuTouchButtons();
 	UI_TouchButtons_GetButtonList();
 	menu_touchbuttons->Show();
 }
 
 void UI_TouchButtons_GetButtonList()
 {
+	if( !menu_touchbuttons )
+		menu_touchbuttons = new CMenuTouchButtons();
 	menu_touchbuttons->model.Update();
 }
 
 // Engine callback
 extern "C" EXPORT void AddTouchButtonToList( const char *name, const char *texture, const char *command, unsigned char *color, int flags )
 {
+	if( !menu_touchbuttons )
+		return;
 	menu_touchbuttons->model.AddButtonToList( name, texture, command, color, flags );
 }

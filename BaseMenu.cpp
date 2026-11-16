@@ -41,6 +41,23 @@ cvar_t		*ui_logohorizontal;
 uiStatic_t	uiStatic;
 static CMenuEntry	*s_pEntries = NULL;
 
+#if XASH_GAMECUBE
+static qboolean UI_GCShouldPrecacheMenuEntry( const char *cmd )
+{
+	if( !cmd )
+		return false;
+
+	/* Keep retail first-boot focused on the interactive top-level menu.
+	 * Secondary dialogs stay lazy and allocate only when explicitly opened. */
+	/* Entry-specific precache can synchronously parse the full retail
+	 * background layout and block the host loop on GameCube. The top-level
+	 * menu performs its own lazy load when activated; leave all entries out of
+	 * the boot precache pass so activation remains responsive. */
+	(void)cmd;
+	return false;
+}
+#endif
+
 const char	*uiSoundOldPrefix	= "media/";
 const char	*uiSoundNewPrefix	= "sound/common/";
 const char	*uiSounds[] = {
@@ -518,7 +535,9 @@ void UI_DrawMouseCursor( void )
 	{
 		FOR_EACH_VEC( uiStatic.menu.Current()->m_pItems, i )
 		{
-			item = (CMenuBaseItem *)uiStatic.menu.Current()->GetItemByIndex(cursor);
+			item = (CMenuBaseItem *)uiStatic.menu.Current()->GetItemByIndex(i);
+			if( !item )
+				continue;
 
 			if( !item->IsVisible( ))
 				continue;
@@ -546,6 +565,12 @@ UI_StartBackGroundMap
 */
 bool UI_StartBackGroundMap( void )
 {
+#if XASH_GAMECUBE
+	/* Retail menu uses the baked resource/gc_menu background. Loading a full
+	 * background BSP on MEM1 is too expensive and blocks menu drawing while
+	 * cl_background is set. */
+	return false;
+#else
 	static int check_dll;
 
 	// the list is empty
@@ -580,6 +605,7 @@ bool UI_StartBackGroundMap( void )
 	EngFuncs::ClientCmd( false, cmd );
 
 	return true;
+#endif
 }
 
 // =====================================================================
@@ -625,6 +651,9 @@ void UI_UpdateMenu( float flTime )
 
 		// load scr
 		UI_LoadScriptConfig();
+#if XASH_GAMECUBE
+		Con_Printf( "Xash3D GameCube: menu script configuration ready\n" );
+#endif
 
 		loadStuff = false;
 	}
@@ -636,7 +665,29 @@ void UI_UpdateMenu( float flTime )
 	if( uiStatic.nextFrameActive )
 	{
 		if( !uiStatic.menu.IsActive() )
+		{
+#if XASH_GAMECUBE
+			Con_Printf( "Xash3D GameCube: opening main menu\n" );
+			/* -gcmenuplaystart tips MEM1 before Show(); UI_Main_Menu never
+			 * reached "main menu opened" (220253/221435/223658) even after
+			 * skipping steam tiles + btn strips. Queue Flipper New Game
+			 * without constructing the main window — retail menu proof stays
+			 * on the plain menu boot path (no -gcmenuplaystart). */
+			if( EngFuncs::GetCvarFloat( "gc_menuplaystart" ) >= 1.0f )
+			{
+				Con_Printf( "Xash3D GameCube: menuplaystart skip UI_Main_Menu\n" );
+				EngFuncs::ClientCmd( false, "gc_playstart\n" );
+				Con_Printf( "Xash3D GameCube: menuplaystart gc_playstart queued\n" );
+			}
+			else
+			{
+				UI_Main_Menu();
+				Con_Printf( "Xash3D GameCube: main menu opened\n" );
+			}
+#else
 			UI_Main_Menu();
+#endif
+		}
 
 		uiStatic.nextFrameActive = false;
 	}
@@ -705,6 +756,26 @@ void UI_KeyEvent( int key, int down )
 
 	clientActive = uiStatic.client.IsActive();
 	menuActive = uiStatic.menu.IsActive();
+
+#if XASH_GAMECUBE
+	if( menuActive && down )
+	{
+		switch( key )
+		{
+		case K_DPAD_DOWN:
+			Con_Printf( "Xash3D GameCube: mainui key down dpad_down\n" );
+			break;
+		case K_A_BUTTON:
+			Con_Printf( "Xash3D GameCube: mainui key down confirm\n" );
+			break;
+		case K_B_BUTTON:
+			Con_Printf( "Xash3D GameCube: mainui key down back\n" );
+			break;
+		default:
+			break;
+		}
+	}
+#endif
 
 	if( clientActive && !menuActive )
 		down ? uiStatic.client.KeyDownEvent( key ) :
@@ -877,21 +948,46 @@ void UI_Precache( void )
 	EngFuncs::PIC_Load( UI_UPARROWFOCUS );
 	EngFuncs::PIC_Load( UI_DOWNARROW );
 	EngFuncs::PIC_Load( UI_DOWNARROWFOCUS );
+#if !XASH_GAMECUBE
 	EngFuncs::PIC_Load( "gfx/shell/splash" );
+#endif
 
 	// load all menu buttons
 	uiStatic.btns.LoadBmpButtons();
+#if XASH_GAMECUBE
+	Con_Printf( "Xash3D GameCube: mainui precache core assets ready\n" );
+#endif
 
 	// all menu buttons have the same view sizes
 	if( uiStatic.btns.GetWidth() == 0 || uiStatic.btns.GetHeight() == 0 )
+	{
 		uiStatic.buttons_draw_size = Size( UI_BUTTONS_WIDTH, UI_BUTTONS_HEIGHT );
+#if XASH_GAMECUBE
+		/* Text-button fallback only — pic strips set WON 156×26 metrics in
+		 * LoadBmpButtons and must keep retail proportions. */
+		if( uiStatic.renderPicbuttonText && uiStatic.buttons_draw_size.h < 56 )
+			uiStatic.buttons_draw_size.h = 56;
+#endif
+	}
 	else
 		uiStatic.buttons_draw_size = Size( uiStatic.btns.GetWidth() * 1024 / 640, uiStatic.btns.GetHeight() * 768 / 480 );
 
 	for( CMenuEntry *entry = s_pEntries; entry; entry = entry->m_pNext )
 	{
 		if( entry->m_pfnPrecache )
+		{
+#if XASH_GAMECUBE
+			if( !UI_GCShouldPrecacheMenuEntry( entry->m_szCommand ))
+				continue;
+			Con_Printf( "Xash3D GameCube: mainui precache entry begin %s\n",
+				entry->m_szCommand ? entry->m_szCommand : "<null>" );
+#endif
 			entry->m_pfnPrecache();
+#if XASH_GAMECUBE
+			Con_Printf( "Xash3D GameCube: mainui precache entry ready %s\n",
+				entry->m_szCommand ? entry->m_szCommand : "<null>" );
+#endif
+		}
 	}
 }
 
@@ -919,7 +1015,9 @@ void UI_ApplyCustomColors( void )
 	if( !afile )
 	{
 		// not error, not warning, just notify
+#if !XASH_GAMECUBE
 		Con_Printf( "UI_ApplyCustomColors: colors.lst not found\n" );
+#endif
 		return;
 	}
 
@@ -1025,6 +1123,14 @@ UI_VidInit
 int UI_VidInit( void )
 {
 	static bool calledOnce = false;
+	static bool gcProbeAutoOpened = false;
+#if XASH_GAMECUBE
+	gcProbeAutoOpened = false;
+	EngFuncs::CvarSetValue( "gc_menu_ready", 0.0f );
+	Con_Printf( "Xash3D GameCube: gc_menu_ready set 0\n" );
+	Con_Printf( "Xash3D GameCube: mainui vidinit begin calledOnce=%d textInput=%d\n",
+		calledOnce ? 1 : 0, uiStatic.textInput ? 1 : 0 );
+#endif
 	if( uiStatic.textInput )
 	{
 		uiStatic.menu.InputMethodResized();
@@ -1061,19 +1167,42 @@ int UI_VidInit( void )
 
 	// trying to load chapterbackgrounds.txt
 	UI_LoadBackgroundMapList ();
+#if XASH_GAMECUBE
+	Con_Printf( "Xash3D GameCube: mainui vidinit backgrounds listed\n" );
+#endif
 
 	// VidInit FontManager
 	g_FontMgr->VidInit();
+#if XASH_GAMECUBE
+	Con_Printf( "Xash3D GameCube: mainui vidinit fonts ready\n" );
+#endif
 
 	// load button sounds
 	UI_LoadSounds();
+#if XASH_GAMECUBE
+	Con_Printf( "Xash3D GameCube: mainui vidinit sounds ready\n" );
+#endif
 
 	// init global background, root windows don't have background anymore
 	if( !uiStatic.background )
 		uiStatic.background = new CMenuBackgroundBitmap();
 	uiStatic.background->VidInit();
+#if XASH_GAMECUBE
+	Con_Printf( "Xash3D GameCube: mainui vidinit background ready\n" );
+#endif
 
 	uiStatic.menu.VidInit( calledOnce );
+#if XASH_GAMECUBE
+	Con_Printf( "Xash3D GameCube: mainui vidinit menu ready\n" );
+	EngFuncs::CvarSetValue( "gc_menu_ready", 1.0f );
+	Con_Printf( "Xash3D GameCube: gc_menu_ready set 1\n" );
+	if( !gcProbeAutoOpened && EngFuncs::GetCvarFloat( "gc_menu_probe_auto" ) > 0.0f )
+	{
+		gcProbeAutoOpened = true;
+		Con_Printf( "Xash3D GameCube: retail probe auto-open options\n" );
+		UI_Options_Menu();
+	}
+#endif
 
 	if( !calledOnce ) calledOnce = true;
 
@@ -1174,6 +1303,18 @@ void UI_Init( void )
 	gMenu.m_gameinfo = *gi;
 
 	uiStatic.renderPicbuttonText = gMenu.m_gameinfo.flags & GFL_RENDER_PICBUTTON_TEXT;
+#if XASH_GAMECUBE
+	/* Still mark lowmemory for other UI allocs, but do not force text-only
+	 * buttons — retail Half-Life uses gfx/shell/btns_main.bmp. LoadBmpButtons
+	 * falls back cleanly if the atlas cannot be uploaded. */
+	uiStatic.lowmemory = 1;
+	/* DoD's slim per-button TGAs are already staged on disc. Use those retail
+	 * strips for the main menu instead of redrawing their labels with the
+	 * coarse console font. */
+	uiStatic.renderPicbuttonText = false;
+	Con_Printf( "Xash3D GameCube: mainui retail picbuttons enabled (lowmem=%d)\n",
+		uiStatic.lowmemory );
+#endif
 
 	// trying to load colors.lst
 	UI_ApplyCustomColors ();

@@ -715,6 +715,13 @@ bool CBaseFont::ReadFromCache( const char *filename, charRange_t *range, size_t 
 
 void CBaseFont::SaveToCache( const char *filename, charRange_t *range, size_t rangeSize, CBMP *bmp )
 {
+#if XASH_GAMECUBE
+	(void)filename;
+	(void)range;
+	(void)rangeSize;
+	(void)bmp;
+	return;
+#else
 	char path[512];
 	int i, j;
 	uint32_t charsCount = 0;
@@ -776,4 +783,5 @@ void CBaseFont::SaveToCache( const char *filename, charRange_t *range, size_t ra
 	EngFuncs::COM_SaveFile( path, data, size );
 
 	delete[] data;
+#endif
 }

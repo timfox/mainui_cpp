@@ -108,6 +108,7 @@ void UI_PlayerIntroduceDialog_Show() { }
 
 void UI_PlayerIntroduceDialog_Show( CMenuBaseWindow *pCaller )
 {
+	menu_playerintroducedialog_Precache();
 	menu_playerintroducedialog->pCaller = pCaller;
 	menu_playerintroducedialog->Show();
 }

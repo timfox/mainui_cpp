@@ -237,7 +237,7 @@ void UI_DrawFinalCredits( void )
 
 int UI_CreditsActive( void )
 {
-	if( !menu_credits->active || !menu_credits->finalCredits )
+	if( !menu_credits || !menu_credits->active || !menu_credits->finalCredits )
 		return false;
 
 	// client left the game, stop final credits
@@ -252,6 +252,7 @@ int UI_CreditsActive( void )
 
 void UI_FinalCredits( void )
 {
+	menu_credits_Precache();
 	menu_credits->Init();
 	menu_credits->VidInit();
 	menu_credits->Reload(); // take a chance to reload info for items

@@ -222,6 +222,8 @@ bool CMenuFramework::DrawAnimation()
 CMenuFramework::CMenuBannerBitmap::CMenuBannerBitmap()
 {
 	SetRect( UI_BANNER_POSX, UI_BANNER_POSY, UI_BANNER_WIDTH, UI_BANNER_HEIGHT );
+	/* Banner is art only. If it stays focusable, pad A activates nothing. */
+	iFlags |= QMF_INACTIVE;
 }
 
 void CMenuFramework::CMenuBannerBitmap::SetPicture(const char *pic)
@@ -233,7 +235,12 @@ void CMenuFramework::CMenuBannerBitmap::Draw( Point pt, Size sz )
 {
 	if( image.IsValid() )
 	{
+#if XASH_GAMECUBE
+		/* Additive banners wash out on Flipper; match PicButton Trans path. */
+		UI_DrawPic( pt, sz, uiColorWhite, image, QM_DRAWTRANS );
+#else
 		UI_DrawPic( pt, sz, uiColorWhite, image, QM_DRAWADDITIVE );
+#endif
 	}
 	else
 	{
