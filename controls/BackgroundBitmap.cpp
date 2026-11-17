@@ -141,6 +141,27 @@ void CMenuBackgroundBitmap::Draw()
 #endif
 	}
 
+#if XASH_GAMECUBE
+	/* The tiles can fail to load at startup when memory is tight; try again a few times
+	 * instead of leaving the flat color (or, before, the Half-Life picture) up for good. */
+	{
+		static int tries;
+		static int nextTry;
+
+		if( s_SteamBackground.Count() == 0 && tries < 8 && uiStatic.realTime >= nextTry )
+		{
+			tries++;
+			nextTry = uiStatic.realTime + 2000;
+			if( LoadSteamBackground( true ))
+			{
+				s_bGameHasSteamBackground = true;
+				UpdatePreference();
+				Con_Printf( "Xash3D GameCube: menu background tiles loaded on retry %d\n", tries );
+			}
+		}
+	}
+#endif
+
 	Point p;
 	float xScale, yScale;
 	Size s;
@@ -382,6 +403,15 @@ bool CMenuBackgroundBitmap::LoadWONBackground( bool gamedirOnly )
 
 void CMenuBackgroundBitmap::UpdatePreference()
 {
+#if XASH_GAMECUBE
+	/* The DoD disc ships the retail Steam tiles (resource/gc_menu). A WON splash or a
+	 * background from the base game directory is the Half-Life picture, so it is never
+	 * chosen, whatever ui_prefer_won_background says or which files happen to load. */
+	s_state = s_SteamBackground.Count() > 0 ? DRAW_STEAM : DRAW_COLOR;
+	s_bEnableLogoMovie = false;
+	ClearBits( ui_prefer_won_background->flags, FCVAR_CHANGED );
+	return;
+#endif
 	if( ui_prefer_won_background->value )
 	{
 		if( s_bGameHasWONBackground )
@@ -448,14 +478,12 @@ void CMenuBackgroundBitmap::LoadBackground()
 #endif
 		s_bGameHasSteamBackground = true;
 	}
+#if !XASH_GAMECUBE
 	else if( LoadSteamBackground( false ))
 	{
 		Con_DPrintf( "%s: found %s background in %s directory\n", __func__, "steam", "base" );
-#if XASH_GAMECUBE
-		Con_Printf( "Xash3D GameCube: retail menu steam background ready tiles=%d\n",
-			s_SteamBackground.Count() );
-#endif
 	}
+#endif
 #if XASH_GAMECUBE
 	else
 	{
@@ -463,13 +491,20 @@ void CMenuBackgroundBitmap::LoadBackground()
 	}
 #endif
 
+#if XASH_GAMECUBE
+	// no WON picture on the DoD disc, see UpdatePreference
+	if( false )
+#else
 	if( LoadWONBackground( true ))
+#endif
 	{
 		Con_DPrintf( "%s: found %s background in %s directory\n", __func__, "won", "game" );
 		s_bGameHasWONBackground = true;
 	}
+#if !XASH_GAMECUBE
 	else if( LoadWONBackground( false ))
 		Con_DPrintf( "%s: found %s background in %s directory\n", __func__, "won", "base" );
+#endif
 
 	UpdatePreference();
 }
