@@ -377,6 +377,7 @@ public:
 	void Show() override;
 	void Hide() override;
 	bool KeyUp( int key ) override;
+	bool KeyDown( int key ) override;
 
 	void SetLANOnly( bool lanOnly )
 	{
@@ -1091,6 +1092,28 @@ void CMenuServerBrowser::Draw( void )
 	}
 }
 
+bool CMenuServerBrowser::KeyDown( int key )
+{
+	bool r = CMenuFramework::KeyDown( key );
+
+#if XASH_GAMECUBE
+	// the cursor lands on grayed buttons (Join, View game info, Favorite without a
+	// selected server); a pad cannot do anything there, so step past them
+	if( UI::Key::IsUpArrow( key ) || UI::Key::IsDownArrow( key ))
+	{
+		for( int i = 0; i < ItemCount(); i++ )
+		{
+			CMenuBaseItem *it = ItemAtCursor();
+
+			if( !it || !FBitSet( it->iFlags, QMF_GRAYED|QMF_INACTIVE ))
+				break;
+			CMenuFramework::KeyDown( key );
+		}
+	}
+#endif
+	return r;
+}
+
 bool CMenuServerBrowser::KeyUp( int key )
 {
 	if( key == 'i' )
@@ -1308,6 +1331,18 @@ void CMenuServerBrowser::_Init( void )
 	AddItem( filterEmpty );
 	AddItem( filterFull );
 	AddItem( filterMap );
+
+#if XASH_GAMECUBE
+	// the filter drop-downs sit after the buttons in the focus order, so a pad
+	// walking down the buttons fell into them and could not reach Add server
+	filterPing.iFlags |= QMF_INACTIVE;
+	filterEmpty.iFlags |= QMF_INACTIVE;
+	filterFull.iFlags |= QMF_INACTIVE;
+	filterMap.iFlags |= QMF_INACTIVE;
+	// the list swallows Up/Down and has no way out for a pad
+	gameList.iFlags |= QMF_INACTIVE;
+	tabSwitch.iFlags |= QMF_INACTIVE;
+#endif
 }
 
 /*
