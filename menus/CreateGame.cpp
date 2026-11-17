@@ -85,9 +85,9 @@ static CreateGameLayout CreateGame_GetLayout( void )
 	CreateGameLayout l;
 	int w = gpGlobals->scrWidth, h = gpGlobals->scrHeight;
 	l.x = w * 325 / 1000;
-	l.y = h * 181 / 1000;
+	l.y = h * 80 / 1000;
 	l.pw = w * 350 / 1000;
-	l.ph = h * 639 / 1000;
+	l.ph = h * 840 / 1000;
 	l.labelX = l.x + 12;
 	l.ctlX = l.x + l.pw * 38 / 100;
 	l.ctlW = l.x + l.pw - 14 - l.ctlX;
@@ -116,6 +116,7 @@ public:
 	void SaveCvars( void );
 	bool KeyDown( int key ) override;
 	bool KeyUp( int key ) override;
+	void Char( int key ) override;
 
 	CMenuField	maxClients;
 	CMenuField	hostName;
@@ -133,6 +134,14 @@ protected:
 	void Draw() override;
 private:
 	void _Init() override;
+	// Pad navigation: the page is drawn by hand, so it keeps its own cursor.
+	// rows: 0 server name, 1 map, 2 password, 3 Start, 4 Cancel
+	int row = 3;
+	int editing = 0;		// 0 no, 1 server name, 2 password
+	char oldText[UI_MAX_FIELD_LINE];
+	CMenuField *EditField() { return editing == 1 ? &hostName : &password; }
+	void BeginEdit( int what );
+	void EndEdit( bool keep );
 	void _VidInit() override;
 };
 
@@ -389,7 +398,7 @@ void CMenuCreateGame::_VidInit()
 void CMenuCreateGame::Draw()
 {
 	int w = gpGlobals->scrWidth, h = gpGlobals->scrHeight;
-	int x = w * 325 / 1000, y = h * 181 / 1000, pw = w * 350 / 1000, ph = h * 639 / 1000;
+	int x = w * 325 / 1000, y = h * 80 / 1000, pw = w * 350 / 1000, ph = h * 840 / 1000;
 	EngFuncs::FillRGBA( x, y, pw, ph, 74, 86, 69, 255 );
 	UI_DrawRectangleExt( x, y, pw, ph, PackRGBA( 139, 148, 127, 255 ), 1 );
 	EngFuncs::FillRGBA( x + 4, y + 38, pw - 8, ph - 91, 72, 82, 66, 255 );
@@ -429,6 +438,19 @@ void CMenuCreateGame::Draw()
 		UI_DrawRectangleExt( L.ctlX, ry, L.ctlW, L.rowH, PackRGBA( 139, 148, 127, 255 ), 1 );
 		UI_DrawString( uiStatic.hDefaultFont, L.ctlX + 4, ry + 3, L.ctlW - 8, 13, values[i] ? values[i] : "", uiColorWhite, fs, QM_LEFT, textFlags );
 	}
+	// pad cursor: gold frame on the selected row, caret while editing
+	{
+		const uint gold = PackRGBA( 255, 210, 80, 255 );
+		static const int rowToLayout[3] = { 0, 1, 3 };
+
+		if( row <= 2 )
+		{
+			int ry = L.rowY[rowToLayout[row]];
+			UI_DrawRectangleExt( L.ctlX - 2, ry - 2, L.ctlW + 4, L.rowH + 4, gold, 2 );
+			if( editing )
+				UI_DrawString( uiStatic.hDefaultFont, L.ctlX + L.ctlW - 12, ry + 3, 10, 13, "_", gold, fs, QM_LEFT, textFlags );
+		}
+	}
 	// selector arrow on the map row
 	int arrowX = L.ctlX + L.ctlW - 8, arrowY = L.rowY[1] + 8;
 	for( int i = 0; i < 3; ++i )
@@ -438,19 +460,102 @@ void CMenuCreateGame::Draw()
 	UI_DrawRectangleExt( sx, by, 36, 16, PackRGBA( 139, 148, 127, 255 ), 1 ); UI_DrawRectangleExt( kx, by, 36, 16, PackRGBA( 139, 148, 127, 255 ), 1 );
 	UI_DrawString( uiStatic.hDefaultFont, sx + 3, by + 2, 33, 12, "Start", uiColorWhite, 6, QM_LEFT, textFlags );
 	UI_DrawString( uiStatic.hDefaultFont, kx + 3, by + 2, 33, 12, "Cancel", uiColorWhite, 6, QM_LEFT, textFlags );
+	if( row >= 3 )
+	{
+		int fx = row == 3 ? sx : kx;
+		UI_DrawRectangleExt( fx - 2, by - 2, 40, 20, PackRGBA( 255, 210, 80, 255 ), 2 );
+	}
+	// button hints, so the page has no dead ends
+	UI_DrawString( uiStatic.hDefaultFont, x + 8, y + ph - 16, pw - 16, 12,
+		editing ? "Keyboard: Start OK   Z cancel" : "A select  B back  D-pad move",
+		PackRGBA( 190, 190, 170, 255 ), 8, QM_LEFT, textFlags );
+}
+
+void CMenuCreateGame::BeginEdit( int what )
+{
+	CreateGameLayout L = CreateGame_GetLayout();
+
+	editing = what;
+	Q_strncpy( oldText, EditField()->GetBuffer(), sizeof( oldText ));
+	// tell the built-in keyboard where the field is and what it holds
+	EngFuncs::SetTextInputRect( L.ctlX, L.rowY[what == 1 ? 0 : 3], L.ctlW, L.rowH );
+	EngFuncs::SetTextInputBuffer( EditField()->GetBuffer() );
+	UI_EnableTextInput( true );
+}
+
+void CMenuCreateGame::EndEdit( bool keep )
+{
+	if( !editing ) return;
+	if( !keep ) EditField()->SetBuffer( oldText );
+	editing = 0;
+	UI_EnableTextInput( false );
+}
+
+void CMenuCreateGame::Char( int key )
+{
+	if( !editing || key < 32 || key > 126 ) return;
+
+	CMenuField *f = EditField();
+	char buf[UI_MAX_FIELD_LINE];
+	size_t len = strlen( f->GetBuffer() );
+
+	if( len + 1 >= sizeof( buf ) || (int)len >= f->iMaxLength ) return;
+	Q_strncpy( buf, f->GetBuffer(), sizeof( buf ));
+	buf[len] = (char)key;
+	buf[len + 1] = 0;
+	f->SetBuffer( buf );
 }
 
 bool CMenuCreateGame::KeyDown( int key )
 {
+	if( editing )
+	{
+		// text arrives through Char(); Enter ends the edit, Escape puts the old text back
+		if( UI::Key::IsEscape( key ) ) { EndEdit( false ); return true; }
+		if( UI::Key::IsEnter( key ) ) { EndEdit( true ); return true; }
+		if( key == K_BACKSPACE )
+		{
+			CMenuField *f = EditField();
+			char buf[UI_MAX_FIELD_LINE];
+			size_t len = strlen( f->GetBuffer() );
+
+			if( len > 0 )
+			{
+				Q_strncpy( buf, f->GetBuffer(), sizeof( buf ));
+				buf[len - 1] = 0;
+				f->SetBuffer( buf );
+			}
+			return true;
+		}
+		return true;
+	}
+
 	if( UI::Key::IsEscape( key ) || key == 'B' ) { Hide(); return true; }
+
+	if( UI::Key::IsUpArrow( key ) ) { row = ( row + 4 ) % 5; return true; }
+	if( UI::Key::IsDownArrow( key ) ) { row = ( row + 1 ) % 5; return true; }
+
 	if( UI::Key::IsLeftArrow( key ) || UI::Key::IsRightArrow( key ) )
 	{
+		if( row >= 3 ) { row = row == 3 ? 4 : 3; return true; } // Start <-> Cancel
 		int n = mapsListModel.Count(), i = mapsList.GetCurrentIndex();
 		if( n > 0 ) mapsList.SetCurrentIndex( ( i + ( UI::Key::IsRightArrow( key ) ? 1 : n - 1 ) ) % n );
 		return true;
 	}
 	if( UI::Key::IsEnter( key ) || key == 'A' )
 	{
+		switch( row )
+		{
+		case 0: BeginEdit( 1 ); return true;
+		case 2: BeginEdit( 2 ); return true;
+		case 1: // next map
+		{
+			int n = mapsListModel.Count(), i = mapsList.GetCurrentIndex();
+			if( n > 0 ) mapsList.SetCurrentIndex( ( i + 1 ) % n );
+			return true;
+		}
+		case 4: Hide(); return true;
+		}
 		Con_Printf( "Xash3D GameCube: CreateGame confirm active=%d\n", CL_IsActive() );
 		if( CL_IsActive() ) msgBox.Show(); else Begin( done, NULL );
 		return true;
@@ -494,6 +599,9 @@ void CMenuCreateGame::Show()
 	hostName.UpdateCvar( true );
 	maxClients.UpdateCvar( true );
 	password.UpdateCvar( true );
+
+	row = 3;
+	editing = 0;
 
 	CMenuBaseWindow::Show();
 }
