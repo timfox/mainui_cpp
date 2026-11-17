@@ -84,9 +84,9 @@ static CreateGameLayout CreateGame_GetLayout( void )
 {
 	CreateGameLayout l;
 	int w = gpGlobals->scrWidth, h = gpGlobals->scrHeight;
-	l.x = w * 325 / 1000;
+	l.x = w * 200 / 1000;
 	l.y = h * 80 / 1000;
-	l.pw = w * 350 / 1000;
+	l.pw = w * 600 / 1000;
 	l.ph = h * 840 / 1000;
 	l.labelX = l.x + 12;
 	l.ctlX = l.x + l.pw * 38 / 100;
@@ -398,29 +398,29 @@ void CMenuCreateGame::_VidInit()
 void CMenuCreateGame::Draw()
 {
 	int w = gpGlobals->scrWidth, h = gpGlobals->scrHeight;
-	int x = w * 325 / 1000, y = h * 80 / 1000, pw = w * 350 / 1000, ph = h * 840 / 1000;
-	EngFuncs::FillRGBA( x, y, pw, ph, 74, 86, 69, 255 );
-	UI_DrawRectangleExt( x, y, pw, ph, PackRGBA( 139, 148, 127, 255 ), 1 );
-	EngFuncs::FillRGBA( x + 4, y + 38, pw - 8, ph - 91, 72, 82, 66, 255 );
-	UI_DrawRectangleExt( x + 4, y + 38, pw - 8, ph - 91, PackRGBA( 72, 82, 66, 255 ), 1 );
+	int x = w * 200 / 1000, y = h * 80 / 1000, pw = w * 600 / 1000, ph = h * 840 / 1000;
+	EngFuncs::FillRGBA( x, y, pw, ph, 55, 43, 29, 255 );
+	UI_DrawRectangleExt( x, y, pw, ph, PackRGBA( 175, 127, 1, 255 ), 1 );
+	EngFuncs::FillRGBA( x + 4, y + 38, pw - 8, ph - 91, 36, 29, 20, 255 );
+	UI_DrawRectangleExt( x + 4, y + 38, pw - 8, ph - 91, PackRGBA( 36, 29, 20, 255 ), 1 );
 	int fs = 10;
 	uint textFlags = ETF_FORCECOL | ETF_NOSIZELIMIT;
 	UI_DrawString( uiStatic.hDefaultFont, x + 22, y + 7, pw - 24, 13, "Create Server", uiColorWhite, fs, QM_LEFT, textFlags );
 	/* Retail's compact close control and map selector arrow are simple shell
 	 * details. Draw them directly so this dialog stays asset-light on GC. */
 	int closeX = x + pw - 12, closeY = y + 5;
-	EngFuncs::FillRGBA( closeX, closeY, 9, 9, 105, 109, 100, 255 );
-	UI_DrawRectangleExt( closeX, closeY, 9, 9, PackRGBA( 139, 148, 127, 255 ), 1 );
+	EngFuncs::FillRGBA( closeX, closeY, 9, 9, 64, 52, 36, 255 );
+	UI_DrawRectangleExt( closeX, closeY, 9, 9, PackRGBA( 175, 127, 1, 255 ), 1 );
 	for( int i = 0; i < 4; ++i )
 	{
-		EngFuncs::FillRGBA( closeX + 2 + i, closeY + 2 + i, 1, 1, 224, 224, 214, 255 );
-		EngFuncs::FillRGBA( closeX + 6 - i, closeY + 2 + i, 1, 1, 224, 224, 214, 255 );
+		EngFuncs::FillRGBA( closeX + 2 + i, closeY + 2 + i, 1, 1, 255, 176, 0, 255 );
+		EngFuncs::FillRGBA( closeX + 6 - i, closeY + 2 + i, 1, 1, 255, 176, 0, 255 );
 	}
-	UI_DrawString( uiStatic.hDefaultFont, x + 8, y + 29, 56, 14, "Server", PackRGBA( 205, 190, 66, 255 ), fs, QM_LEFT, textFlags );
+	UI_DrawString( uiStatic.hDefaultFont, x + 8, y + 29, 56, 14, "Server", PackRGBA( 255, 176, 0, 255 ), fs, QM_LEFT, textFlags );
 	UI_DrawString( uiStatic.hDefaultFont, x + 69, y + 32, 48, 13, "Game", uiColorWhite, fs, QM_LEFT, textFlags );
-	UI_DrawRectangleExt( x + 5, y + 27, 60, 22, PackRGBA( 139, 148, 127, 255 ), 1 );
+	UI_DrawRectangleExt( x + 5, y + 27, 60, 22, PackRGBA( 175, 127, 1, 255 ), 1 );
 	CreateGameLayout L = CreateGame_GetLayout();
-	const uint labelCol = PackRGBA( 205, 190, 66, 255 );
+	const uint labelCol = PackRGBA( 255, 176, 0, 255 );
 	static const char *const labels[4] = { "Server name", "Map", "Max players", "Password" };
 	char passMask[17];
 	int index = mapsList.GetCurrentIndex();
@@ -434,13 +434,13 @@ void CMenuCreateGame::Draw()
 	{
 		int ry = L.rowY[i];
 		UI_DrawString( uiStatic.hDefaultFont, L.labelX, ry + 3, L.ctlX - L.labelX - 4, 13, labels[i], labelCol, fs, QM_LEFT, textFlags );
-		EngFuncs::FillRGBA( L.ctlX, ry, L.ctlW, L.rowH, 57, 68, 54, 255 );
-		UI_DrawRectangleExt( L.ctlX, ry, L.ctlW, L.rowH, PackRGBA( 139, 148, 127, 255 ), 1 );
+		EngFuncs::FillRGBA( L.ctlX, ry, L.ctlW, L.rowH, 12, 10, 6, 255 );
+		UI_DrawRectangleExt( L.ctlX, ry, L.ctlW, L.rowH, PackRGBA( 175, 127, 1, 255 ), 1 );
 		UI_DrawString( uiStatic.hDefaultFont, L.ctlX + 4, ry + 3, L.ctlW - 8, 13, values[i] ? values[i] : "", uiColorWhite, fs, QM_LEFT, textFlags );
 	}
 	// pad cursor: gold frame on the selected row, caret while editing
 	{
-		const uint gold = PackRGBA( 255, 210, 80, 255 );
+		const uint gold = PackRGBA( 255, 176, 0, 255 );
 		static const int rowToLayout[3] = { 0, 1, 3 };
 
 		if( row <= 2 )
@@ -455,20 +455,20 @@ void CMenuCreateGame::Draw()
 	int arrowX = L.ctlX + L.ctlW - 8, arrowY = L.rowY[1] + 8;
 	for( int i = 0; i < 3; ++i )
 		EngFuncs::FillRGBA( arrowX - i, arrowY + i, 1 + i * 2, 1, 174, 178, 165, 255 );
-	int by = y + ph - 38, sx = x + pw - 76, kx = x + pw - 39;
-	EngFuncs::FillRGBA( sx, by, 36, 16, 65, 77, 61, 255 ); EngFuncs::FillRGBA( kx, by, 36, 16, 65, 77, 61, 255 );
-	UI_DrawRectangleExt( sx, by, 36, 16, PackRGBA( 139, 148, 127, 255 ), 1 ); UI_DrawRectangleExt( kx, by, 36, 16, PackRGBA( 139, 148, 127, 255 ), 1 );
-	UI_DrawString( uiStatic.hDefaultFont, sx + 3, by + 2, 33, 12, "Start", uiColorWhite, 8, QM_LEFT, textFlags );
-	UI_DrawString( uiStatic.hDefaultFont, kx + 3, by + 2, 33, 12, "Cancel", uiColorWhite, 8, QM_LEFT, textFlags );
+	int by = y + ph - 40, sx = x + pw - 146, kx = x + pw - 76;
+	EngFuncs::FillRGBA( sx, by, 68, 22, 64, 52, 36, 255 ); EngFuncs::FillRGBA( kx, by, 68, 22, 64, 52, 36, 255 );
+	UI_DrawRectangleExt( sx, by, 68, 22, PackRGBA( 175, 127, 1, 255 ), 1 ); UI_DrawRectangleExt( kx, by, 68, 22, PackRGBA( 175, 127, 1, 255 ), 1 );
+	UI_DrawString( uiStatic.hDefaultFont, sx + 4, by + 4, 60, 14, "Start", uiColorWhite, 8, QM_LEFT, textFlags );
+	UI_DrawString( uiStatic.hDefaultFont, kx + 4, by + 4, 60, 14, "Cancel", uiColorWhite, 8, QM_LEFT, textFlags );
 	if( row >= 3 )
 	{
 		int fx = row == 3 ? sx : kx;
-		UI_DrawRectangleExt( fx - 2, by - 2, 40, 20, PackRGBA( 255, 210, 80, 255 ), 2 );
+		UI_DrawRectangleExt( fx - 2, by - 2, 72, 26, PackRGBA( 255, 176, 0, 255 ), 2 );
 	}
 	// button hints, so the page has no dead ends
 	UI_DrawString( uiStatic.hDefaultFont, x + 8, y + ph - 16, pw - 16, 12,
 		editing ? "Keyboard: Start OK   Z cancel" : "A select  B back  D-pad move",
-		PackRGBA( 190, 190, 170, 255 ), 10, QM_LEFT, textFlags );
+		PackRGBA( 255, 176, 0, 160 ), 10, QM_LEFT, textFlags );
 }
 
 void CMenuCreateGame::BeginEdit( int what )
@@ -567,18 +567,18 @@ bool CMenuCreateGame::KeyUp( int key )
 {
 	if( UI::Key::IsLeftMouse( key ) )
 	{
-		int x = gpGlobals->scrWidth * 325 / 1000, y = gpGlobals->scrHeight * 181 / 1000;
-		int pw = gpGlobals->scrWidth * 350 / 1000, ph = gpGlobals->scrHeight * 639 / 1000, by = y + ph - 38;
+		int x = gpGlobals->scrWidth * 200 / 1000, y = gpGlobals->scrHeight * 181 / 1000;
+		int pw = gpGlobals->scrWidth * 600 / 1000, ph = gpGlobals->scrHeight * 639 / 1000, by = y + ph - 40;
 		if( uiStatic.cursorX >= x + pw - 12 && uiStatic.cursorX <= x + pw - 3 &&
 			uiStatic.cursorY >= y + 5 && uiStatic.cursorY <= y + 14 )
 		{
 			Hide();
 			return true;
 		}
-		if( uiStatic.cursorY >= by && uiStatic.cursorY <= by + 16 )
+		if( uiStatic.cursorY >= by && uiStatic.cursorY <= by + 22 )
 		{
-			if( uiStatic.cursorX >= x + pw - 76 && uiStatic.cursorX <= x + pw - 40 ) { if( CL_IsActive() ) msgBox.Show(); else Begin( done, NULL ); return true; }
-			if( uiStatic.cursorX >= x + pw - 39 && uiStatic.cursorX <= x + pw - 3 ) { Hide(); return true; }
+			if( uiStatic.cursorX >= x + pw - 146 && uiStatic.cursorX <= x + pw - 78 ) { if( CL_IsActive() ) msgBox.Show(); else Begin( done, NULL ); return true; }
+			if( uiStatic.cursorX >= x + pw - 76 && uiStatic.cursorX <= x + pw - 8 ) { Hide(); return true; }
 		}
 		CreateGameLayout L = CreateGame_GetLayout();
 		int mx = L.ctlX, my = L.rowY[1], mw = L.ctlW, n = mapsListModel.Count();
