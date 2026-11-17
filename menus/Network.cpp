@@ -36,7 +36,7 @@ private:
 
 	CMenuCheckBox dhcp;
 	CMenuField    ip, mask, gateway, dns;
-	CMenuAction   status, note;
+	CMenuAction   status, note, hint;
 };
 
 bool CMenuNetwork::KeyDown( int key )
@@ -124,14 +124,20 @@ void CMenuNetwork::_Init()
 
 	status.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
 	status.colorBase = uiColorHelp;
-	status.SetCharSize( QM_SMALLFONT );
-	status.SetRect( 360, 630, 500, 24 );
+	status.SetCharSize( QM_DEFAULTFONT );
+	status.SetRect( 360, 630, 500, 30 );
 
 	note.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
 	note.colorBase = uiColorHelp;
-	note.SetCharSize( QM_SMALLFONT );
-	note.szName = L( "Changes apply the next time the network starts (reboot if it already failed)" );
-	note.SetRect( 360, 660, 700, 24 );
+	note.SetCharSize( QM_DEFAULTFONT );
+	note.szName = L( "Applies at the next network start" );
+	note.SetRect( 360, 665, 600, 30 );
+
+	hint.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
+	hint.colorBase = uiColorHelp;
+	hint.SetCharSize( QM_DEFAULTFONT );
+	hint.szName = L( "A edit    B back" );
+	hint.SetRect( 360, 700, 500, 30 );
 
 	AddItem( banner );
 	AddButton( L( "Done" ), nullptr, PC_DONE, VoidCb( &CMenuNetwork::SaveCb ));
@@ -143,6 +149,7 @@ void CMenuNetwork::_Init()
 	AddItem( dns );
 	AddItem( status );
 	AddItem( note );
+	AddItem( hint );
 
 	UpdateEnabled();
 }
