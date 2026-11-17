@@ -76,6 +76,11 @@ void CMenuField::_Event( int ev )
 		VidInit();
 		break;
 	case QM_GOTFOCUS:
+#if XASH_GAMECUBE
+		// the built-in keyboard moves out of the way of this field and echoes its text
+		EngFuncs::SetTextInputRect( m_scPos.x, m_scPos.y, m_scSize.w, m_scSize.h );
+		EngFuncs::SetTextInputBuffer( szBuffer );
+#endif
 		UI_EnableTextInput( true );
 		break;
 	case QM_IMRESIZED:
