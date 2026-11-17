@@ -65,8 +65,8 @@ void CMenuPlayerName::_Init()
 
 	hint.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
 	hint.colorBase = uiColorHelp;
-	hint.SetCharSize( QM_SMALLFONT );
-	hint.szName = L( "A edit   B back" );
+	hint.SetCharSize( QM_DEFAULTFONT );
+	hint.szName = L( "A edit    B back" );
 	hint.SetRect( 360, 380, 500, 24 );
 
 	AddItem( banner );

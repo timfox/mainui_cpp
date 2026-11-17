@@ -403,7 +403,7 @@ void CMenuCreateGame::Draw()
 	UI_DrawRectangleExt( x, y, pw, ph, PackRGBA( 139, 148, 127, 255 ), 1 );
 	EngFuncs::FillRGBA( x + 4, y + 38, pw - 8, ph - 91, 72, 82, 66, 255 );
 	UI_DrawRectangleExt( x + 4, y + 38, pw - 8, ph - 91, PackRGBA( 72, 82, 66, 255 ), 1 );
-	int fs = 8;
+	int fs = 10;
 	uint textFlags = ETF_FORCECOL | ETF_NOSIZELIMIT;
 	UI_DrawString( uiStatic.hDefaultFont, x + 22, y + 7, pw - 24, 13, "Create Server", uiColorWhite, fs, QM_LEFT, textFlags );
 	/* Retail's compact close control and map selector arrow are simple shell
@@ -458,8 +458,8 @@ void CMenuCreateGame::Draw()
 	int by = y + ph - 38, sx = x + pw - 76, kx = x + pw - 39;
 	EngFuncs::FillRGBA( sx, by, 36, 16, 65, 77, 61, 255 ); EngFuncs::FillRGBA( kx, by, 36, 16, 65, 77, 61, 255 );
 	UI_DrawRectangleExt( sx, by, 36, 16, PackRGBA( 139, 148, 127, 255 ), 1 ); UI_DrawRectangleExt( kx, by, 36, 16, PackRGBA( 139, 148, 127, 255 ), 1 );
-	UI_DrawString( uiStatic.hDefaultFont, sx + 3, by + 2, 33, 12, "Start", uiColorWhite, 6, QM_LEFT, textFlags );
-	UI_DrawString( uiStatic.hDefaultFont, kx + 3, by + 2, 33, 12, "Cancel", uiColorWhite, 6, QM_LEFT, textFlags );
+	UI_DrawString( uiStatic.hDefaultFont, sx + 3, by + 2, 33, 12, "Start", uiColorWhite, 8, QM_LEFT, textFlags );
+	UI_DrawString( uiStatic.hDefaultFont, kx + 3, by + 2, 33, 12, "Cancel", uiColorWhite, 8, QM_LEFT, textFlags );
 	if( row >= 3 )
 	{
 		int fx = row == 3 ? sx : kx;
@@ -468,7 +468,7 @@ void CMenuCreateGame::Draw()
 	// button hints, so the page has no dead ends
 	UI_DrawString( uiStatic.hDefaultFont, x + 8, y + ph - 16, pw - 16, 12,
 		editing ? "Keyboard: Start OK   Z cancel" : "A select  B back  D-pad move",
-		PackRGBA( 190, 190, 170, 255 ), 8, QM_LEFT, textFlags );
+		PackRGBA( 190, 190, 170, 255 ), 10, QM_LEFT, textFlags );
 }
 
 void CMenuCreateGame::BeginEdit( int what )
