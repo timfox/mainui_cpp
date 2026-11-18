@@ -20,6 +20,21 @@ the Free Software Foundation; either version 2 of the License, or
 
 #define ART_BANNER "gfx/shell/head_advoptions"
 
+// a retail-palette panel behind the page items (the page sat directly on the artwork)
+class CMenuPanel : public CMenuBaseItem
+{
+public:
+	CMenuPanel() { iFlags = QMF_INACTIVE; }
+	void Draw() override
+	{
+		const int w = gpGlobals->scrWidth, h = gpGlobals->scrHeight;
+		const int x = w * 300 / 1000, y = h * 150 / 1000, pw = w * 680 / 1000, ph = h * 810 / 1000;
+
+		EngFuncs::FillRGBA( x, y, pw, ph, 55, 43, 29, 235 );
+		UI_DrawRectangleExt( x, y, pw, ph, PackRGBA( 175, 127, 1, 255 ), 1 );
+	}
+};
+
 class CMenuNetwork : public CMenuFramework
 {
 public:
@@ -34,6 +49,8 @@ private:
 	void Restore();
 	void UpdateEnabled();
 
+	CMenuPicButton *doneBtn = nullptr;
+	CMenuPanel    panel;
 	CMenuCheckBox dhcp;
 	CMenuField    ip, mask, gateway, dns;
 	CMenuAction   status, note, hint;
@@ -48,7 +65,15 @@ bool CMenuNetwork::KeyDown( int key )
 
 void CMenuNetwork::Show()
 {
+#if XASH_GAMECUBE
+	// the pad has no pointer, but the virtual cursor still hovers: park it off the fields so it does not
+	// grab focus (and open the keyboard) the moment the page opens
+	uiStatic.cursorX = 4;
+	uiStatic.cursorY = gpGlobals->scrHeight - 4;
+#endif
 	CMenuFramework::Show();
+	// start on Done: a focused field opens the keyboard over the page
+	if( doneBtn ) SetCursorToItem( *doneBtn );
 	status.szName = EngFuncs::GetCvarString( "gc_net_status" );
 }
 
@@ -100,47 +125,53 @@ void CMenuNetwork::_Init()
 
 	dhcp.SetNameAndStatus( L( "Automatic address (DHCP)" ), L( "Get the IP address from your router. Turn off to enter one by hand" ));
 	dhcp.LinkCvar( "gc_net_dhcp" );
-	dhcp.SetCoord( 360, 230 );
+	dhcp.SetCharSize( QM_BIGFONT ); dhcp.font = uiStatic.hDefaultFont; // big size, the one menu font the GameCube has
+	dhcp.SetCoord( 340, 165 );
 	SET_EVENT_MULTI( dhcp.onChanged,
 	{
 		pSelf->GetParent( CMenuNetwork )->UpdateEnabled();
 	});
 
 	ip.SetNameAndStatus( L( "IP address" ), L( "Console address, for example 192.168.1.50" ));
+	ip.SetCharSize( QM_BIGFONT ); ip.font = uiStatic.hDefaultFont; // big size, the one menu font the GameCube has
 	ip.LinkCvar( "gc_net_ip" );
-	ip.SetRect( 360, 310, 300, 36 );
+	ip.SetRect( 340, 265, 560, 46 );
 
 	mask.SetNameAndStatus( L( "Subnet mask" ), L( "Usually 255.255.255.0" ));
+	mask.SetCharSize( QM_BIGFONT ); mask.font = uiStatic.hDefaultFont; // big size, the one menu font the GameCube has
 	mask.LinkCvar( "gc_net_mask" );
-	mask.SetRect( 360, 390, 300, 36 );
+	mask.SetRect( 340, 360, 560, 46 );
 
 	gateway.SetNameAndStatus( L( "Gateway" ), L( "Your router address, for example 192.168.1.1" ));
+	gateway.SetCharSize( QM_BIGFONT ); gateway.font = uiStatic.hDefaultFont; // big size, the one menu font the GameCube has
 	gateway.LinkCvar( "gc_net_gw" );
-	gateway.SetRect( 360, 470, 300, 36 );
+	gateway.SetRect( 340, 455, 560, 46 );
 
 	dns.SetNameAndStatus( L( "DNS server (optional)" ), L( "Used to find internet servers. Empty = gateway, then 1.1.1.1 and 8.8.8.8" ));
+	dns.SetCharSize( QM_BIGFONT ); dns.font = uiStatic.hDefaultFont; // big size, the one menu font the GameCube has
 	dns.LinkCvar( "gc_net_dns" );
-	dns.SetRect( 360, 550, 300, 36 );
+	dns.SetRect( 340, 550, 560, 46 );
 
 	status.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
 	status.colorBase = uiColorHelp;
-	status.SetCharSize( QM_DEFAULTFONT );
-	status.SetRect( 360, 630, 500, 30 );
+	status.SetCharSize( QM_BIGFONT ); status.font = uiStatic.hDefaultFont; // big size, the one menu font the GameCube has
+	status.SetRect( 340, 615, 600, 40 );
 
 	note.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
 	note.colorBase = uiColorHelp;
-	note.SetCharSize( QM_DEFAULTFONT );
-	note.szName = L( "Applies at the next network start" );
-	note.SetRect( 360, 665, 600, 30 );
+	note.SetCharSize( QM_BIGFONT ); note.font = uiStatic.hDefaultFont; // big size, the one menu font the GameCube has
+	note.szName = L( "Applies at next start" );
+	note.SetRect( 340, 655, 600, 40 );
 
 	hint.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
 	hint.colorBase = uiColorHelp;
-	hint.SetCharSize( QM_DEFAULTFONT );
+	hint.SetCharSize( QM_BIGFONT ); hint.font = uiStatic.hDefaultFont; // big size, the one menu font the GameCube has
 	hint.szName = L( "A edit    B back" );
-	hint.SetRect( 360, 700, 500, 30 );
+	hint.SetRect( 340, 695, 600, 40 );
 
 	AddItem( banner );
-	AddButton( L( "Done" ), nullptr, PC_DONE, VoidCb( &CMenuNetwork::SaveCb ));
+	AddItem( panel );
+	doneBtn = AddButton( L( "Done" ), nullptr, PC_DONE, VoidCb( &CMenuNetwork::SaveCb ));
 	AddButton( L( "GameUI_Cancel" ), nullptr, PC_CANCEL, VoidCb( &CMenuNetwork::RestoreCb ));
 	AddItem( dhcp );
 	AddItem( ip );
