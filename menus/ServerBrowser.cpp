@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "StringArrayModel.h"
 #include "DropDown.h"
 #include "Action.h"
+#include "PagePanel.h"
 
 #define ART_BANNER_INET     "gfx/shell/head_inetgames"
 #define ART_BANNER_LAN      "gfx/shell/head_lan"
@@ -380,6 +381,8 @@ public:
 	bool KeyUp( int key ) override;
 	bool KeyDown( int key ) override;
 	CMenuAction hint;
+	CMenuAction stateText;	// Searching... / No servers found
+	CMenuPagePanel panel;
 
 	void SetLANOnly( bool lanOnly )
 	{
@@ -1083,6 +1086,13 @@ UI_Background_Ownerdraw
 */
 void CMenuServerBrowser::Draw( void )
 {
+#if XASH_GAMECUBE
+	// empty and searching states for the list
+	if( gameListModel.servers.Count() > 0 ) stateText.szName = "";
+	else if( !m_bLanOnly && ( !strncmp( EngFuncs::GetCvarString( "gc_net_status" ), "not", 3 ) || !strncmp( EngFuncs::GetCvarString( "gc_net_status" ), "fail", 4 )) ) stateText.szName = L( "Network is not available" );
+	else if( uiStatic.realTime < refreshTime2 + 4000 ) stateText.szName = L( "Searching..." );
+	else stateText.szName = L( "No servers found. Press X to refresh." );
+#endif
 	CMenuFramework::Draw();
 
 	if( uiStatic.realTime > refreshTime )
@@ -1100,6 +1110,11 @@ void CMenuServerBrowser::Draw( void )
 bool CMenuServerBrowser::KeyDown( int key )
 {
 #if XASH_GAMECUBE
+	if( key == K_X_BUTTON && ItemAtCursor() != &hint )
+	{
+		RefreshList();
+		return true;
+	}
 	// The server list: Right from the buttons enters it, Up/Down pick a row (the table does that),
 	// A joins it, Left goes back to the buttons.
 	if( ItemAtCursor() != &gameList && UI::Key::IsRightArrow( key ) && gameListModel.servers.Count() > 0 )
@@ -1166,6 +1181,9 @@ CMenuServerBrowser::Init
 void CMenuServerBrowser::_Init( void )
 {
 	AddItem( banner );
+#if XASH_GAMECUBE
+	AddItem( panel );
+#endif
 
 	joinGame = AddButton( L( "Join game" ), nullptr, PC_JOIN_GAME, VoidCb( &CMenuServerBrowser::JoinGame ), QMF_GRAYED );
 	joinGame->onReleasedClActive = msgBox.MakeOpenEvent();
@@ -1194,12 +1212,16 @@ void CMenuServerBrowser::_Init( void )
 	msgBox.Link( this );
 
 #if XASH_GAMECUBE
-	gameList.SetCharSize( QM_DEFAULTFONT );
+	PAGE_BIG( gameList );
 #else
 	gameList.SetCharSize( QM_SMALLFONT );
 #endif
 	gameList.SetupColumn( COLUMN_PASSWORD, NULL, 32.0f, true );
+#if XASH_GAMECUBE
+	gameList.SetupColumn( COLUMN_FAVORITE, NULL, 0, true );
+#else
 	gameList.SetupColumn( COLUMN_FAVORITE, NULL, 32.0f, true );
+#endif
 	gameList.SetupColumn( COLUMN_NAME, L( "Name" ), 0.40f );
 	gameList.SetupColumn( COLUMN_MAP, L( "GameUI_Map" ), 0.25f );
 	gameList.SetupColumn( COLUMN_PLAYERS, L( "Players" ), 100.0f, true );
@@ -1379,8 +1401,15 @@ void CMenuServerBrowser::_Init( void )
 	hint.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
 	hint.colorBase = uiColorHelp;
 	hint.SetCharSize( QM_DEFAULTFONT );
-	hint.szName = L( "A select  B back  Right: list" );
-	hint.SetRect( 360, 705, 600, 30 );
+	hint.szName = L( "A join  B back  X refresh  Right: list" );
+	PAGE_BIG( hint );
+	hint.SetRect( 340, 700, 640, 40 );
+	stateText.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
+	stateText.colorBase = uiColorHelp;
+	PAGE_BIG( stateText );
+	stateText.eTextAlignment = QM_CENTER;
+	stateText.SetRect( 340, 400, 640, 40 );
+	AddItem( stateText );
 	// the filter drop-downs sit under the list and cannot be reached with a pad: keep their defaults, hide them
 	filterPing.iFlags |= QMF_HIDDEN;
 	filterEmpty.iFlags |= QMF_HIDDEN;
@@ -1400,6 +1429,10 @@ void CMenuServerBrowser::_VidInit()
 	refreshTime = uiStatic.realTime + 500; // delay before update 0.5 sec
 	refreshTime2 = uiStatic.realTime + 500;
 
+#if XASH_GAMECUBE
+	gameList.SetCoord( 340, 200 );
+	gameList.SetSize( 620, 470 );
+#else
 	if( m_bLanOnly )
 	{
 		gameList.SetCoord( 360, 230 );
@@ -1408,6 +1441,7 @@ void CMenuServerBrowser::_VidInit()
 	{
 		gameList.SetCoord( 360, 230 + tabSwitch.size.h + uiStatic.outlineWidth );
 	}
+#endif
 
 	int x = gameList.pos.x;
 	int y = gameList.pos.y + gameList.size.h + UI_OUTLINE_WIDTH;
