@@ -37,7 +37,7 @@ void CMenuPadLayout::_Init()
 	{
 		{ "Main stick", "Move" },
 		{ "C-stick", "Look" },
-		{ "A", "Jump / confirm" },
+		{ "A", "Jump / OK" },
 		{ "B", "Use / back" },
 		{ "X", "Reload" },
 		{ "Y", "Voice menu" },
@@ -45,7 +45,7 @@ void CMenuPadLayout::_Init()
 		{ "Z + Y", "Chat" },
 		{ "R", "Fire" },
 		{ "L", "Alt fire" },
-		{ "D-pad up / down", "Weapons" },
+		{ "D-pad U/D", "Weapons" },
 		{ "D-pad right", "Scoreboard" },
 		{ "Start", "Menu" },
 	};
@@ -66,7 +66,7 @@ void CMenuPadLayout::_Init()
 		action[i].iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
 		PAGE_BIG( action[i] );
 		action[i].szName = rows[i][1];
-		action[i].SetRect( 620, 190 + i * 40, 320, 36 );
+		action[i].SetRect( 600, 190 + i * 40, 360, 36 );
 
 		AddItem( button[i] );
 		AddItem( action[i] );

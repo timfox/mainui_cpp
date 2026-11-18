@@ -1410,7 +1410,7 @@ void CMenuServerBrowser::_Init( void )
 	hint.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
 	hint.colorBase = uiColorHelp;
 	hint.SetCharSize( QM_DEFAULTFONT );
-	hint.szName = L( "A join  B back  X refresh  Y LAN/Internet" );
+	hint.szName = L( "A join  B back  X refresh" );
 	PAGE_BIG( hint );
 	hint.SetRect( 340, 700, 640, 40 );
 	stateText.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
