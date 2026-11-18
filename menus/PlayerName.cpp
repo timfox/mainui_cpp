@@ -15,6 +15,7 @@ the Free Software Foundation; either version 2 of the License, or
 #include "PicButton.h"
 #include "Field.h"
 #include "Action.h"
+#include "PagePanel.h"
 
 #define ART_BANNER "gfx/shell/head_customize"
 
@@ -29,6 +30,7 @@ private:
 	void SaveCb();
 	void RestoreCb();
 
+	CMenuPagePanel panel;
 	CMenuField  name;
 	CMenuAction hint;
 };
@@ -60,16 +62,18 @@ void CMenuPlayerName::_Init()
 
 	name.SetNameAndStatus( L( "GameUI_PlayerName" ), L( "The name other players see. A edit, then Done" ));
 	name.iMaxLength = 32;
+	PAGE_BIG( name );
 	name.LinkCvar( "name" );
-	name.SetRect( 360, 310, 400, 40 );
+	name.SetRect( 340, 300, 560, 52 );
 
 	hint.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
 	hint.colorBase = uiColorHelp;
-	hint.SetCharSize( QM_DEFAULTFONT );
+	PAGE_BIG( hint );
 	hint.szName = L( "A edit    B back" );
-	hint.SetRect( 360, 380, 500, 24 );
+	hint.SetRect( 340, 380, 600, 40 );
 
 	AddItem( banner );
+	AddItem( panel );
 	AddButton( L( "Done" ), nullptr, PC_DONE, VoidCb( &CMenuPlayerName::SaveCb ));
 	AddButton( L( "GameUI_Cancel" ), nullptr, PC_CANCEL, VoidCb( &CMenuPlayerName::RestoreCb ));
 	AddItem( name );
