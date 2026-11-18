@@ -100,6 +100,7 @@ void CMenuNetwork::_Init()
 
 	dhcp.SetNameAndStatus( L( "Automatic address (DHCP)" ), L( "Get the IP address from your router. Turn off to enter one by hand" ));
 	dhcp.LinkCvar( "gc_net_dhcp" );
+	dhcp.SetCharSize( QM_BIGFONT );
 	dhcp.SetCoord( 360, 230 );
 	SET_EVENT_MULTI( dhcp.onChanged,
 	{
@@ -108,30 +109,34 @@ void CMenuNetwork::_Init()
 
 	ip.SetNameAndStatus( L( "IP address" ), L( "Console address, for example 192.168.1.50" ));
 	ip.LinkCvar( "gc_net_ip" );
+	ip.SetCharSize( QM_BIGFONT );
 	ip.SetRect( 360, 310, 300, 36 );
 
 	mask.SetNameAndStatus( L( "Subnet mask" ), L( "Usually 255.255.255.0" ));
 	mask.LinkCvar( "gc_net_mask" );
+	mask.SetCharSize( QM_BIGFONT );
 	mask.SetRect( 360, 390, 300, 36 );
 
 	gateway.SetNameAndStatus( L( "Gateway" ), L( "Your router address, for example 192.168.1.1" ));
 	gateway.LinkCvar( "gc_net_gw" );
+	gateway.SetCharSize( QM_BIGFONT );
 	gateway.SetRect( 360, 470, 300, 36 );
 
 	dns.SetNameAndStatus( L( "DNS server (optional)" ), L( "Used to find internet servers. Empty = gateway, then 1.1.1.1 and 8.8.8.8" ));
 	dns.LinkCvar( "gc_net_dns" );
+	dns.SetCharSize( QM_BIGFONT );
 	dns.SetRect( 360, 550, 300, 36 );
 
 	status.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
 	status.colorBase = uiColorHelp;
-	status.SetCharSize( QM_SMALLFONT );
-	status.SetRect( 360, 630, 500, 24 );
+	status.SetCharSize( QM_DEFAULTFONT );
+	status.SetRect( 360, 630, 600, 32 );
 
 	note.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
 	note.colorBase = uiColorHelp;
-	note.SetCharSize( QM_SMALLFONT );
+	note.SetCharSize( QM_DEFAULTFONT );
 	note.szName = L( "Changes apply the next time the network starts (reboot if it already failed)" );
-	note.SetRect( 360, 660, 700, 24 );
+	note.SetRect( 360, 670, 640, 32 );
 
 	AddItem( banner );
 	AddButton( L( "Done" ), nullptr, PC_DONE, VoidCb( &CMenuNetwork::SaveCb ));
