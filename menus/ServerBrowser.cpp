@@ -1089,7 +1089,7 @@ void CMenuServerBrowser::Draw( void )
 #if XASH_GAMECUBE
 	// empty and searching states for the list
 	if( gameListModel.servers.Count() > 0 ) stateText.szName = "";
-	else if( !m_bLanOnly && ( !strncmp( EngFuncs::GetCvarString( "gc_net_status" ), "not", 3 ) || !strncmp( EngFuncs::GetCvarString( "gc_net_status" ), "fail", 4 )) ) stateText.szName = L( "Network is not available" );
+	else if( !m_bLanOnly && !strncmp( EngFuncs::GetCvarString( "gc_net_status" ), "fail", 4 )) stateText.szName = L( "Network is not available" );
 	else if( uiStatic.realTime < refreshTime2 + 4000 ) stateText.szName = L( "Searching..." );
 	else stateText.szName = L( "No servers found. Press X to refresh." );
 #endif
@@ -1110,9 +1110,18 @@ void CMenuServerBrowser::Draw( void )
 bool CMenuServerBrowser::KeyDown( int key )
 {
 #if XASH_GAMECUBE
-	if( key == K_X_BUTTON && ItemAtCursor() != &hint )
+	if( key == K_X_BUTTON )
 	{
 		RefreshList();
+		return true;
+	}
+	if( key == K_Y_BUTTON )
+	{
+		// Internet <-> LAN: close this page and open the other one
+		const bool lan = m_bLanOnly;
+
+		Hide();
+		if( lan ) UI_InternetGames_Menu(); else UI_LanGame_Menu();
 		return true;
 	}
 	// The server list: Right from the buttons enters it, Up/Down pick a row (the table does that),
@@ -1201,7 +1210,7 @@ void CMenuServerBrowser::_Init( void )
 	viewGameInfo = AddButton( L( "View game info" ), nullptr, PC_VIEW_GAME_INFO, VoidCb( &CMenuServerBrowser::ViewGameInfo ), QMF_GRAYED );
 	favorite = AddButton( L( "Favorite" ), nullptr, PC_FAVORITE, VoidCb( &CMenuServerBrowser::FavoriteServer ), 0, 'o' );
 	refresh = AddButton( L( "Refresh" ), nullptr, PC_REFRESH, VoidCb( &CMenuServerBrowser::RefreshList ) );
-	addServer = AddButton( L( "Add server" ), nullptr, PC_ADD_SERVER, VoidCb( &CMenuServerBrowser::ShowAddServerBox ));
+	addServer = AddButton( L( "Add by address" ), nullptr, PC_ADD_SERVER, VoidCb( &CMenuServerBrowser::ShowAddServerBox ));
 
 	AddButton( L( "Done" ), nullptr, PC_DONE, VoidCb( &CMenuServerBrowser::Hide ) );
 
@@ -1401,7 +1410,7 @@ void CMenuServerBrowser::_Init( void )
 	hint.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
 	hint.colorBase = uiColorHelp;
 	hint.SetCharSize( QM_DEFAULTFONT );
-	hint.szName = L( "A join  B back  X refresh  Right: list" );
+	hint.szName = L( "A join  B back  X refresh  Y LAN/Internet" );
 	PAGE_BIG( hint );
 	hint.SetRect( 340, 700, 640, 40 );
 	stateText.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
