@@ -51,6 +51,8 @@ public:
 
 	bool KeyDown( int key ) override;
 
+	void QuitDialogCb();
+
 private:
 	void _Init() override;
 	void _VidInit( ) override;
@@ -58,7 +60,6 @@ private:
 
 	void VidInit(bool connected);
 
-	void QuitDialogCb();
 	void DisconnectCb();
 	void DisconnectDialogCb();
 	void HazardCourseDialogCb();
@@ -91,6 +92,11 @@ private:
 
 	bool bTrainMap;
 	bool bCustomGame;
+
+	// visibility of singleplayer-related buttons
+	bool bShowNewGame;
+	bool bShowHazardCourse;
+	bool bShowSaveRestore;
 };
 
 void CMenuMain::QuitDialogCb()
@@ -111,7 +117,7 @@ void CMenuMain::QuitDialogCb()
 		dialog.SetMessage( confirm );
 	}
 
-	dialog.onPositive.SetCommand( false, "quit\n" );
+	dialog.onPositive.SetCommand( false, "quit \"menu dialog\"\n" );
 	dialog.Show();
 }
 
@@ -299,8 +305,16 @@ void CMenuMain::_Init( void )
 	minimizeBtn.eFocusAnimation = QM_HIGHLIGHTIFFOCUS;
 	minimizeBtn.onReleased.SetCommand( false, "minimize\n" );
 
-	if ( gMenu.m_gameinfo.gamemode == GAME_MULTIPLAYER_ONLY || gMenu.m_gameinfo.startmap[0] == 0 )
-		newGame.SetGrayed( true );
+	const bool mpOnly = gMenu.m_gameinfo.gamemode == GAME_MULTIPLAYER_ONLY;
+	const bool hasStartMap = gMenu.m_gameinfo.startmap[0] != 0;
+
+	// singleplayer-related buttons are not added to the menu at all
+	// when they can't be used, so they don't take any space
+	bShowNewGame = !mpOnly && hasStartMap;
+
+	// Counter-Strike may define a training map despite being marked as GAME_MULTIPLAYER_ONLY
+	bShowHazardCourse = bTrainMap;
+	bShowSaveRestore = !mpOnly || bTrainMap;
 
 	if ( gMenu.m_gameinfo.gamemode == GAME_MULTIPLAYER_ONLY || dodRetail )
 	{
@@ -347,7 +361,7 @@ void CMenuMain::_Init( void )
 #else
 	if( FBitSet( gMenu.m_gameinfo.flags, GFL_ANIMATED_TITLE ))
 	{
-		if( animatedBanner.TryLoad())
+		if( !uiStatic.lowmemory && animatedBanner.TryLoad())
 			AddItem( animatedBanner );
 	}
 	else
@@ -567,3 +581,26 @@ void CMenuMain::Think()
 }
 
 ADD_MENU( menu_main, CMenuMain, UI_Main_Menu );
+
+/*
+=================
+UI_QuitDialog_f
+
+called by the engine when the OS asks to quit (window close button, Cmd+Q on macOS...)
+=================
+*/
+static void UI_QuitDialog_f( void )
+{
+	// nothing to lose, quit immediately
+	if( !CL_IsActive( ))
+	{
+		EngFuncs::ClientCmd( false, "quit \"menu\"\n" );
+		return;
+	}
+
+	if( !UI_IsVisible( ))
+		UI_Main_Menu();
+
+	menu_main->QuitDialogCb();
+}
+ADD_COMMAND( menu_quit, UI_QuitDialog_f );

@@ -467,18 +467,10 @@ void UI_LoadSaveGame_Precache( void )
 	if( menu_loadgame )
 		return;
 	menu_loadgame = new CMenuLoadGame();
-	EngFuncs::PIC_Load( ART_BANNER_SAVE );
-	EngFuncs::PIC_Load( ART_BANNER_LOAD );
 }
 
 void UI_LoadSaveGame_Menu( bool saveMode )
 {
-	if( gMenu.m_gameinfo.gamemode == GAME_MULTIPLAYER_ONLY )
-	{
-		// completely ignore save\load menus for multiplayer_only
-		return;
-	}
-
 	if( !EngFuncs::CheckGameDll( )) return;
 
 	UI_LoadSaveGame_Precache();
