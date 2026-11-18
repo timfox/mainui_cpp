@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "SpinControl.h"
 #include "StringArrayModel.h"
 #include "DropDown.h"
+#include "Action.h"
 
 #define ART_BANNER_INET     "gfx/shell/head_inetgames"
 #define ART_BANNER_LAN      "gfx/shell/head_lan"
@@ -378,6 +379,7 @@ public:
 	void Hide() override;
 	bool KeyUp( int key ) override;
 	bool KeyDown( int key ) override;
+	CMenuAction hint;
 
 	void SetLANOnly( bool lanOnly )
 	{
@@ -760,6 +762,9 @@ CMenuServerBrowser::JoinGame
 */
 void CMenuServerBrowser::JoinGame()
 {
+#if XASH_GAMECUBE
+	Con_Printf( "Xash3D GameCube: join selected server index=%d\n", gameList.GetCurrentIndex() );
+#endif
 	gameListModel.OnActivateEntry( gameList.GetCurrentIndex() );
 }
 
@@ -1094,6 +1099,32 @@ void CMenuServerBrowser::Draw( void )
 
 bool CMenuServerBrowser::KeyDown( int key )
 {
+#if XASH_GAMECUBE
+	// The server list: Right from the buttons enters it, Up/Down pick a row (the table does that),
+	// A joins it, Left goes back to the buttons.
+	if( ItemAtCursor() != &gameList && UI::Key::IsRightArrow( key ) && gameListModel.servers.Count() > 0 )
+	{
+		SetCursorToItem( gameList );
+		return true;
+	}
+	if( ItemAtCursor() == &gameList )
+	{
+		// nothing is selected until a row is picked; the first row is the natural start for a pad
+		if( gameListModel.servers.Count() > 0 && !gameListModel.servers.IsValidIndex( gameList.GetCurrentIndex() ))
+			gameList.SetCurrentIndex( 0 );
+
+		if( UI::Key::IsLeftArrow( key ))
+		{
+			SetCursorToItem( *refresh );
+			return true;
+		}
+		if(( UI::Key::IsEnter( key ) || key == 'A' ) && gameListModel.servers.IsValidIndex( gameList.GetCurrentIndex() ))
+		{
+			JoinGame();
+			return true;
+		}
+	}
+#endif
 	bool r = CMenuFramework::KeyDown( key );
 
 #if XASH_GAMECUBE
@@ -1162,7 +1193,11 @@ void CMenuServerBrowser::_Init( void )
 	msgBox.onPositive = VoidCb( &CMenuServerBrowser::JoinGame );
 	msgBox.Link( this );
 
+#if XASH_GAMECUBE
+	gameList.SetCharSize( QM_DEFAULTFONT );
+#else
 	gameList.SetCharSize( QM_SMALLFONT );
+#endif
 	gameList.SetupColumn( COLUMN_PASSWORD, NULL, 32.0f, true );
 	gameList.SetupColumn( COLUMN_FAVORITE, NULL, 32.0f, true );
 	gameList.SetupColumn( COLUMN_NAME, L( "Name" ), 0.40f );
@@ -1339,9 +1374,19 @@ void CMenuServerBrowser::_Init( void )
 	filterEmpty.iFlags |= QMF_INACTIVE;
 	filterFull.iFlags |= QMF_INACTIVE;
 	filterMap.iFlags |= QMF_INACTIVE;
-	// the list swallows Up/Down and has no way out for a pad
-	gameList.iFlags |= QMF_INACTIVE;
 	tabSwitch.iFlags |= QMF_INACTIVE;
+
+	hint.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
+	hint.colorBase = uiColorHelp;
+	hint.SetCharSize( QM_DEFAULTFONT );
+	hint.szName = L( "A select  B back  Right: list" );
+	hint.SetRect( 360, 705, 600, 30 );
+	// the filter drop-downs sit under the list and cannot be reached with a pad: keep their defaults, hide them
+	filterPing.iFlags |= QMF_HIDDEN;
+	filterEmpty.iFlags |= QMF_HIDDEN;
+	filterFull.iFlags |= QMF_HIDDEN;
+	filterMap.iFlags |= QMF_HIDDEN;
+	AddItem( hint );
 #endif
 }
 
