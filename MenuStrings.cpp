@@ -85,6 +85,41 @@ const char *L( const char *szStr ) // L means Localize!
 
 		if( i != hashed_cmds.InvalidIndex() )
 			return hashed_cmds[i];
+
+#if XASH_GAMECUBE
+		/* The disc does not always carry the string table that has these keys, and the raw key
+		 * ("GameUI_SoundEffectVolume") ended up on screen. Make a readable label from it instead:
+		 * "Sound Effect Volume". */
+		if( !strncmp( szStr, "GameUI_", 7 ))
+		{
+			static char ring[8][64];
+			static int next;
+			char *out = ring[next++ & 7];
+			const char *in = szStr + 7;
+			int o = 0;
+
+			for( ; *in && o < 62; in++ )
+			{
+				const char c = *in;
+				const char prev = in > szStr + 7 ? in[-1] : 0;
+				const bool upper = c >= 'A' && c <= 'Z';
+				const bool prevLower = prev >= 'a' && prev <= 'z';
+				const bool prevUpper = prev >= 'A' && prev <= 'Z';
+				const bool nextLower = in[1] >= 'a' && in[1] <= 'z';
+
+				if( c == '_' )
+				{
+					if( o && out[o - 1] != ' ' ) out[o++] = ' ';
+					continue;
+				}
+				if( upper && o && out[o - 1] != ' ' && ( prevLower || ( prevUpper && nextLower )))
+					out[o++] = ' ';
+				out[o++] = c;
+			}
+			out[o] = 0;
+			return out;
+		}
+#endif
 	}
 
 	return szStr;
