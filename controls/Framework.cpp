@@ -221,6 +221,8 @@ bool CMenuFramework::DrawAnimation()
 
 CMenuFramework::CMenuBannerBitmap::CMenuBannerBitmap()
 {
+	// decoration, must not take keyboard focus
+	SetBits( iFlags, QMF_INACTIVE );
 	SetRect( UI_BANNER_POSX, UI_BANNER_POSY, UI_BANNER_WIDTH, UI_BANNER_HEIGHT );
 	/* Banner is art only. If it stays focusable, pad A activates nothing. */
 	iFlags |= QMF_INACTIVE;
@@ -228,6 +230,9 @@ CMenuFramework::CMenuBannerBitmap::CMenuBannerBitmap()
 
 void CMenuFramework::CMenuBannerBitmap::SetPicture(const char *pic)
 {
+	if( uiStatic.lowmemory )
+		return;
+
 	image.Load( pic );
 }
 
