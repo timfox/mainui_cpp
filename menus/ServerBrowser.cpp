@@ -1019,8 +1019,14 @@ void CMenuServerBrowser::ShowAddServerBox( void )
 void CMenuServerBrowser::AddServer( void )
 {
 	netadr_t adr;
+	char sadr[128];
 
-	if( !EngFuncs::textfuncs.pNetAPI->StringToAdr( (char *)addressField.GetBuffer(), &adr ))
+	// an address typed on a pad is usually just the IP: the default port is 27015
+	Q_strncpy( sadr, addressField.GetBuffer(), sizeof( sadr ));
+	if( sadr[0] && !strchr( sadr, ':' ) && strlen( sadr ) < sizeof( sadr ) - 7 )
+		strcat( sadr, ":27015" );
+
+	if( !EngFuncs::textfuncs.pNetAPI->StringToAdr( sadr, &adr ))
 	{
 		UI_ShowMessageBox( L( "Invalid address" ));
 		return;
@@ -1046,7 +1052,7 @@ void CMenuServerBrowser::AddServer( void )
 	// Check for duplicates in favorites list
 	FOR_EACH_VEC( favoritesList, i )
 	{
-		if( !strcmp( favoritesList[i].sadr, addressField.GetBuffer() ) &&
+		if( !strcmp( favoritesList[i].sadr, sadr ) &&
 		    !strcmp( favoritesList[i].prot, proto ))
 		{
 			UI_ShowMessageBox( L( "Server already in favorites" ));
@@ -1054,7 +1060,7 @@ void CMenuServerBrowser::AddServer( void )
 		}
 	}
 
-	favlist_entry_t entry( addressField.GetBuffer(), proto, false );
+	favlist_entry_t entry( sadr, proto, false );
 	favoritesList.AddToTail( entry );
 
 	if( tabSwitch.GetState() != 2 )
