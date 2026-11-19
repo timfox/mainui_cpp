@@ -208,6 +208,18 @@ void CMenuMain::HazardCourseCb()
 
 void CMenuMain::_Init( void )
 {
+#if XASH_GAMECUBE
+	// A saved name and settings on the memory card load once at start; no card or no file is silent, nothing is asked
+	{
+		static bool cardLoaded;
+
+		if( !cardLoaded )
+		{
+			cardLoaded = true;
+			EngFuncs::ClientCmd( false, "gc_card_load silent\n" );
+		}
+	}
+#endif
 	const bool dodRetail = UI_IsDayOfDefeat();
 #if XASH_GAMECUBE
 	/* -gcmenuplaystart already tips MEM1 before UI_Main_Menu; btn_*.tga

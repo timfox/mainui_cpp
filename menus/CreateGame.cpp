@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Table.h"
 #include "Action.h"
 #include "YesNoMessageBox.h"
+#include "HintRow.h"
 #include "Table.h"
 #include <new>
 
@@ -466,9 +467,9 @@ void CMenuCreateGame::Draw()
 		UI_DrawRectangleExt( fx - 2, by - 2, 72, 26, PackRGBA( 255, 176, 0, 255 ), 2 );
 	}
 	// button hints, so the page has no dead ends
-	UI_DrawString( uiStatic.hDefaultFont, x + 8, y + ph - 16, pw - 16, 12,
-		editing ? "Keyboard: Start OK   Z cancel" : "A select  B back  D-pad move",
-		PackRGBA( 255, 176, 0, 160 ), 10, QM_LEFT, textFlags );
+	UI_DrawButtonText( uiStatic.hDefaultFont, x + 8, y + ph - 16, 10,
+		editing ? "Keyboard: {S} OK   {Z} cancel" : "{A} select  {B} back  D-pad move",
+		PackRGBA( 255, 176, 0, 160 ), textFlags );
 }
 
 void CMenuCreateGame::BeginEdit( int what )

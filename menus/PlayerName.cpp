@@ -16,6 +16,8 @@ the Free Software Foundation; either version 2 of the License, or
 #include "Field.h"
 #include "Action.h"
 #include "PagePanel.h"
+#include "CardPrompt.h"
+#include "HintRow.h"
 
 #define ART_BANNER "gfx/shell/head_customize"
 
@@ -29,10 +31,15 @@ private:
 	void _Init() override;
 	void SaveCb();
 	void RestoreCb();
+	void CardSaveCb();
+	void Draw() override;
 
 	CMenuPagePanel panel;
 	CMenuField  name;
-	CMenuAction hint;
+	CMenuHintRow hint;
+	CMenuAction cardStatus;
+	CMenuCardFormatBox formatBox;
+	bool cardAsked = false;
 };
 
 bool CMenuPlayerName::KeyDown( int key )
@@ -48,6 +55,24 @@ void CMenuPlayerName::SaveCb()
 		return; // stay on the page, an empty or reserved name is not saved
 	name.WriteCvar();
 	SaveAndPopMenu();
+}
+
+// Save the name and settings to the memory card. A card that needs formatting opens the format dialog (default No).
+void CMenuPlayerName::CardSaveCb()
+{
+	if( !UI::Names::CheckIsNameValid( name.GetBuffer() ))
+		return;
+	name.WriteCvar();	// the card saves what is in the cvars
+	cardAsked = true;
+	EngFuncs::ClientCmd( true, "gc_card_save\n" );
+	if( !strcmp( EngFuncs::GetCvarString( "gc_card_status" ), "the card must be formatted first" ))
+		formatBox.Show();
+}
+
+void CMenuPlayerName::Draw()
+{
+	cardStatus.szName = cardAsked ? EngFuncs::GetCvarString( "gc_card_status" ) : "";
+	CMenuFramework::Draw();
 }
 
 void CMenuPlayerName::RestoreCb()
@@ -69,15 +94,24 @@ void CMenuPlayerName::_Init()
 	hint.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
 	hint.colorBase = uiColorHelp;
 	PAGE_BIG( hint );
-	hint.szName = L( "A edit    B back" );
+	hint.szName = L( "{A} edit    {B} back" );
 	hint.SetRect( 340, 380, 600, 40 );
+
+	cardStatus.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
+	cardStatus.colorBase = uiColorHelp;
+	PAGE_BIG( cardStatus );
+	cardStatus.SetRect( 340, 440, 600, 40 );
+
+	formatBox.Link( this );
 
 	AddItem( banner );
 	AddItem( panel );
 	AddButton( L( "Done" ), nullptr, PC_DONE, VoidCb( &CMenuPlayerName::SaveCb ));
 	AddButton( L( "GameUI_Cancel" ), nullptr, PC_CANCEL, VoidCb( &CMenuPlayerName::RestoreCb ));
+	AddButton( L( "Save to memory card" ), L( "Save your name and settings to the card in slot A" ), PC_ADV_OPT, VoidCb( &CMenuPlayerName::CardSaveCb ), QMF_NOTIFY );
 	AddItem( name );
 	AddItem( hint );
+	AddItem( cardStatus );
 }
 
 ADD_MENU( menu_playername, CMenuPlayerName, UI_PlayerName_Menu );

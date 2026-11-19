@@ -14,8 +14,22 @@ the Free Software Foundation; either version 2 of the License, or
 #include "PicButton.h"
 #include "Action.h"
 #include "PagePanel.h"
+#include "HintRow.h"
 
 #define ART_BANNER "gfx/shell/head_customize"
+
+// "A" -> "{A}" ... so the page shows the button glyphs; the stick and D-pad rows stay text
+static const char *ButtonToken( const char *label )
+{
+	static const struct { const char *label, *token; } map[] = {
+		{ "A", "{A}" }, { "B", "{B}" }, { "X", "{X}" }, { "Y", "{Y}" }, { "Z", "{Z}" }, { "R", "{R}" }, { "L", "{L}" },
+		{ "Z + Y", "{Z} + {Y}" }, { "Start", "{S}" },
+	};
+
+	for( const auto &m : map )
+		if( !strcmp( m.label, label )) return m.token;
+	return label;
+}
 
 class CMenuPadLayout : public CMenuFramework
 {
@@ -27,7 +41,8 @@ private:
 
 	static const int LINES = 13; // 13 rows of 40 units fit the panel (190..710)
 	CMenuPagePanel panel;
-	CMenuAction button[LINES], action[LINES];
+	CMenuHintRow button[LINES];
+	CMenuAction action[LINES];
 };
 
 void CMenuPadLayout::_Init()
@@ -60,7 +75,7 @@ void CMenuPadLayout::_Init()
 		button[i].iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
 		button[i].colorBase = uiColorHelp;
 		PAGE_BIG( button[i] );
-		button[i].szName = rows[i][0];
+		button[i].szName = ButtonToken( rows[i][0] );
 		button[i].SetRect( 330, 190 + i * 40, 260, 36 );
 
 		action[i].iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
