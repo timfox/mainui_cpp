@@ -141,19 +141,19 @@ void CMenuNetwork::_Init()
 	status.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
 	status.colorBase = uiColorHelp;
 	PAGE_BIG( status );
-	status.SetRect( 340, 615, 600, 40 );
+	status.SetRect( 340, 610, 600, 34 );
 
 	note.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
 	note.colorBase = uiColorHelp;
 	PAGE_BIG( note );
 	note.szName = L( "Applies at next start" );
-	note.SetRect( 340, 655, 600, 40 );
+	note.SetRect( 340, 646, 600, 34 );
 
 	hint.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
 	hint.colorBase = uiColorHelp;
 	PAGE_BIG( hint );
 	hint.szName = L( "A edit    B back" );
-	hint.SetRect( 340, 695, 600, 40 );
+	hint.SetRect( 340, 684, 600, 34 );
 
 	AddItem( banner );
 	AddItem( panel );

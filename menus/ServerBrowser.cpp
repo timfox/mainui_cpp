@@ -1412,7 +1412,7 @@ void CMenuServerBrowser::_Init( void )
 	hint.SetCharSize( QM_DEFAULTFONT );
 	hint.szName = L( "A join  B back  X refresh" );
 	PAGE_BIG( hint );
-	hint.SetRect( 340, 700, 640, 40 );
+	hint.SetRect( 340, 676, 620, 40 );
 	stateText.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
 	stateText.colorBase = uiColorHelp;
 	PAGE_BIG( stateText );
