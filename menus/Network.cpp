@@ -18,6 +18,7 @@ the Free Software Foundation; either version 2 of the License, or
 #include "Field.h"
 #include "Action.h"
 #include "PagePanel.h"
+#include "HintRow.h"
 
 #define ART_BANNER "gfx/shell/head_advoptions"
 
@@ -39,7 +40,8 @@ private:
 	CMenuPagePanel panel;
 	CMenuCheckBox dhcp;
 	CMenuField    ip, mask, gateway, dns;
-	CMenuAction   status, note, hint;
+	CMenuAction   status, note;
+	CMenuHintRow  hint;
 };
 
 bool CMenuNetwork::KeyDown( int key )
@@ -152,7 +154,7 @@ void CMenuNetwork::_Init()
 	hint.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
 	hint.colorBase = uiColorHelp;
 	PAGE_BIG( hint );
-	hint.szName = L( "A edit    B back" );
+	hint.szName = L( "{A} edit    {B} back" );
 	hint.SetRect( 340, 684, 600, 34 );
 
 	AddItem( banner );

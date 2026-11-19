@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "DropDown.h"
 #include "Action.h"
 #include "PagePanel.h"
+#include "HintRow.h"
 
 #define ART_BANNER_INET     "gfx/shell/head_inetgames"
 #define ART_BANNER_LAN      "gfx/shell/head_lan"
@@ -380,7 +381,7 @@ public:
 	void Hide() override;
 	bool KeyUp( int key ) override;
 	bool KeyDown( int key ) override;
-	CMenuAction hint;
+	CMenuHintRow hint;
 	CMenuAction stateText;	// Searching... / No servers found
 	CMenuPagePanel panel;
 
@@ -1410,7 +1411,7 @@ void CMenuServerBrowser::_Init( void )
 	hint.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
 	hint.colorBase = uiColorHelp;
 	hint.SetCharSize( QM_DEFAULTFONT );
-	hint.szName = L( "A join  B back  X refresh" );
+	hint.szName = L( "{A} join  {B} back  {X} refresh" );
 	PAGE_BIG( hint );
 	hint.SetRect( 340, 676, 620, 40 );
 	stateText.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
