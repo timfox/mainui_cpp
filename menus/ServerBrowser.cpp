@@ -1092,7 +1092,7 @@ void CMenuServerBrowser::Draw( void )
 	if( gameListModel.servers.Count() > 0 ) stateText.szName = "";
 	else if( !m_bLanOnly && !strncmp( EngFuncs::GetCvarString( "gc_net_status" ), "fail", 4 )) stateText.szName = L( "Network is not available" );
 	else if( uiStatic.realTime < refreshTime2 + 4000 ) stateText.szName = L( "Searching..." );
-	else stateText.szName = L( "No servers found. Press X to refresh." );
+	else stateText.szName = L( "No servers found" );
 #endif
 	CMenuFramework::Draw();
 
@@ -1198,7 +1198,7 @@ void CMenuServerBrowser::_Init( void )
 	joinGame = AddButton( L( "Join game" ), nullptr, PC_JOIN_GAME, VoidCb( &CMenuServerBrowser::JoinGame ), QMF_GRAYED );
 	joinGame->onReleasedClActive = msgBox.MakeOpenEvent();
 
-	createGame = AddButton( L( "GameUI_GameMenu_CreateServer" ), NULL, PC_CREATE_GAME );
+	createGame = AddButton( !strcmp( L( "GameUI_GameMenu_CreateServer" ), "GameUI_GameMenu_CreateServer" ) ? "Create game" : L( "GameUI_GameMenu_CreateServer" ), NULL, PC_CREATE_GAME );
 	SET_EVENT_MULTI( createGame->onReleased,
 	{
 		if( ((CMenuServerBrowser*)pSelf->Parent())->m_bLanOnly )

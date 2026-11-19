@@ -108,7 +108,7 @@ void CMenuPlayerName::_Init()
 	AddItem( panel );
 	AddButton( L( "Done" ), nullptr, PC_DONE, VoidCb( &CMenuPlayerName::SaveCb ));
 	AddButton( L( "GameUI_Cancel" ), nullptr, PC_CANCEL, VoidCb( &CMenuPlayerName::RestoreCb ));
-	AddButton( L( "Save to memory card" ), L( "Save your name and settings to the card in slot A" ), PC_ADV_OPT, VoidCb( &CMenuPlayerName::CardSaveCb ), QMF_NOTIFY );
+	AddButton( L( "Save card" ), L( "Save your name and settings to the memory card in slot A" ), PC_ADV_OPT, VoidCb( &CMenuPlayerName::CardSaveCb ), QMF_NOTIFY );
 	AddItem( name );
 	AddItem( hint );
 	AddItem( cardStatus );

@@ -73,7 +73,8 @@ inline int UI_DrawButtonText( HFont font, int x, int y, int h, const char *str, 
 		{
 			const int w = g_FontMgr->GetTextWideScaled( font, text, h );
 
-			UI_DrawString( font, Point( x, y ), Size( w + 4, h * 2 ), text, tcol, h, QM_LEFT, flags );
+			// box = one character tall and top aligned, so the text shares its top edge with the glyph (a taller box centred the text lower)
+			UI_DrawString( font, Point( x, y ), Size( w + 4, h ), text, tcol, h, QM_LEFT | QM_TOP, flags );
 			x += w;
 		}
 	}
