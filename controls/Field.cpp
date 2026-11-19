@@ -378,7 +378,7 @@ void CMenuField::Draw( void )
 
 	textflags |= ETF_NOSIZELIMIT;
 
-	if( szStatusText && iFlags & QMF_NOTIFY )
+	if( HasStatusText() && iFlags & QMF_NOTIFY )
 	{
 		int	x;
 

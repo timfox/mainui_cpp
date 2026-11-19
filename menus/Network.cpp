@@ -130,12 +130,12 @@ void CMenuNetwork::_Init()
 	mask.LinkCvar( "gc_net_mask" );
 	mask.SetRect( 340, 360, 560, 46 );
 
-	gateway.SetNameAndStatus( L( "Gateway" ), L( "Your router address, for example 192.168.1.1" ));
+	gateway.SetNameAndStatus( L( "Gateway (your router)" ), L( "Your router address, for example 192.168.1.1" ));
 	PAGE_BIG( gateway );
 	gateway.LinkCvar( "gc_net_gw" );
 	gateway.SetRect( 340, 455, 560, 46 );
 
-	dns.SetNameAndStatus( L( "DNS server (optional)" ), L( "Used to find internet servers. Empty = gateway, then 1.1.1.1 and 8.8.8.8" ));
+	dns.SetNameAndStatus( L( "DNS (empty = automatic)" ), L( "Used to find internet servers. Empty = gateway, then 1.1.1.1 and 8.8.8.8" ));
 	PAGE_BIG( dns );
 	dns.LinkCvar( "gc_net_dns" );
 	dns.SetRect( 340, 550, 560, 46 );

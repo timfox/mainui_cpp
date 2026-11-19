@@ -64,7 +64,7 @@ void CMenuFramework::Draw()
 	// draw status text if status text isn't rendered at right side of an item
 	// ideally, framework shouldn't even know about this but since everything
 	// WON-styled goes here, let's leave it here...
-	if( item && item == lastItem && !FBitSet( item->iFlags, QMF_NOTIFY ) && item->szStatusText != NULL )
+	if( item && item == lastItem && !FBitSet( item->iFlags, QMF_NOTIFY ) && item->HasStatusText() )
 	{
 		float alpha = bound( 0, ((( uiStatic.realTime - statusFadeTime ) - 100 ) * 0.01f ), 1 );
 		int r, g, b, x, len;

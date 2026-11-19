@@ -143,7 +143,7 @@ void CMenuAction::Draw( )
 		}
 	}
 
-	if( szStatusText && iFlags & QMF_NOTIFY )
+	if( HasStatusText() && iFlags & QMF_NOTIFY )
 	{
 		Point coord;
 

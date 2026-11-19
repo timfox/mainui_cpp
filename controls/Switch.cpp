@@ -207,7 +207,7 @@ void CMenuSwitch::Draw( void )
 	uint selectColor = iSelectColor;
 	UI_DrawString( font, m_scTextPos, m_scTextSize, szName, uiColorHelp, m_scChSize, eTextAlignment, textflags | ETF_FORCECOL );
 
-	if( szStatusText && iFlags & QMF_NOTIFY )
+	if( HasStatusText() && iFlags & QMF_NOTIFY )
 	{
 		Point coord;
 

@@ -162,6 +162,17 @@ public:
 		szTag = tag;
 	}
 
+	// The per-item description line ("Go back to the Main menu") is not drawn on the GameCube build: the console UI is
+	// button-glyph hints and labels only. Real state and results live in their own items, not in status text.
+	inline bool HasStatusText() const
+	{
+#if XASH_GAMECUBE
+		return false;
+#else
+		return szStatusText != NULL;
+#endif
+	}
+
 	CMenuItemsHolder* Parent() const			{ return m_pParent; }
 
 	#ifndef MY_COMPILER_SUCKS
