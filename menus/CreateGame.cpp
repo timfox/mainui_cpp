@@ -382,7 +382,7 @@ void CMenuCreateGame::_Init( void )
 
 void CMenuCreateGame::_VidInit()
 {
-	mapsList.SetRect( 590, 230, -20, 465 );
+	mapsList.SetRect( 590, 230, 382, 465 );	// right edge at the 5% safe margin (x 972), not the screen edge
 	mapsList.Hide();
 
 	hostName.SetRect( 350, 260, 205, 32 );
