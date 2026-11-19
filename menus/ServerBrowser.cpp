@@ -1210,7 +1210,7 @@ void CMenuServerBrowser::_Init( void )
 	viewGameInfo = AddButton( L( "View game info" ), nullptr, PC_VIEW_GAME_INFO, VoidCb( &CMenuServerBrowser::ViewGameInfo ), QMF_GRAYED );
 	favorite = AddButton( L( "Favorite" ), nullptr, PC_FAVORITE, VoidCb( &CMenuServerBrowser::FavoriteServer ), 0, 'o' );
 	refresh = AddButton( L( "Refresh" ), nullptr, PC_REFRESH, VoidCb( &CMenuServerBrowser::RefreshList ) );
-	addServer = AddButton( L( "Add by address" ), nullptr, PC_ADD_SERVER, VoidCb( &CMenuServerBrowser::ShowAddServerBox ));
+	addServer = AddButton( L( "Add by IP" ), nullptr, PC_ADD_SERVER, VoidCb( &CMenuServerBrowser::ShowAddServerBox ));
 
 	AddButton( L( "Done" ), nullptr, PC_DONE, VoidCb( &CMenuServerBrowser::Hide ) );
 
