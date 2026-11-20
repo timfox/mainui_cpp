@@ -21,21 +21,6 @@ the Free Software Foundation; either version 2 of the License, or
 
 #define ART_BANNER "gfx/shell/head_advoptions"
 
-// a retail-palette panel behind the page items (the page sat directly on the artwork)
-class CMenuPanel : public CMenuBaseItem
-{
-public:
-	CMenuPanel() { iFlags = QMF_INACTIVE; }
-	void Draw() override
-	{
-		const int w = gpGlobals->scrWidth, h = gpGlobals->scrHeight;
-		const int x = w * 300 / 1000, y = h * 150 / 1000, pw = w * 680 / 1000, ph = h * 810 / 1000;
-
-		EngFuncs::FillRGBA( x, y, pw, ph, 55, 43, 29, 235 );
-		UI_DrawRectangleExt( x, y, pw, ph, PackRGBA( 175, 127, 1, 255 ), 1 );
-	}
-};
-
 class CMenuNetwork : public CMenuFramework
 {
 public:
@@ -52,7 +37,6 @@ private:
 
 	CMenuPicButton *doneBtn = nullptr;
 	CMenuPagePanel panel;
-	CMenuPanel    panel;
 	CMenuCheckBox dhcp;
 	CMenuField    ip, mask, gateway, dns;
 	CMenuAction   status, note, hint;
