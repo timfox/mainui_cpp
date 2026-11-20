@@ -21,6 +21,21 @@ the Free Software Foundation; either version 2 of the License, or
 
 #define ART_BANNER "gfx/shell/head_advoptions"
 
+// a retail-palette panel behind the page items (the page sat directly on the artwork)
+class CMenuPanel : public CMenuBaseItem
+{
+public:
+	CMenuPanel() { iFlags = QMF_INACTIVE; }
+	void Draw() override
+	{
+		const int w = gpGlobals->scrWidth, h = gpGlobals->scrHeight;
+		const int x = w * 300 / 1000, y = h * 150 / 1000, pw = w * 680 / 1000, ph = h * 810 / 1000;
+
+		EngFuncs::FillRGBA( x, y, pw, ph, 55, 43, 29, 235 );
+		UI_DrawRectangleExt( x, y, pw, ph, PackRGBA( 175, 127, 1, 255 ), 1 );
+	}
+};
+
 class CMenuNetwork : public CMenuFramework
 {
 public:
@@ -37,6 +52,7 @@ private:
 
 	CMenuPicButton *doneBtn = nullptr;
 	CMenuPagePanel panel;
+	CMenuPanel    panel;
 	CMenuCheckBox dhcp;
 	CMenuField    ip, mask, gateway, dns;
 	CMenuAction   status, note, hint;
@@ -112,6 +128,7 @@ void CMenuNetwork::_Init()
 	dhcp.SetNameAndStatus( L( "Automatic address (DHCP)" ), L( "Get the IP address from your router. Turn off to enter one by hand" ));
 	dhcp.LinkCvar( "gc_net_dhcp" );
 	PAGE_BIG( dhcp );
+	dhcp.SetCharSize( QM_BIGFONT ); dhcp.font = uiStatic.hDefaultFont; // big size, the one menu font the GameCube has
 	dhcp.SetCoord( 340, 165 );
 	SET_EVENT_MULTI( dhcp.onChanged,
 	{
@@ -120,21 +137,25 @@ void CMenuNetwork::_Init()
 
 	ip.SetNameAndStatus( L( "IP address" ), L( "Console address, for example 192.168.1.50" ));
 	PAGE_BIG( ip );
+	ip.SetCharSize( QM_BIGFONT ); ip.font = uiStatic.hDefaultFont; // big size, the one menu font the GameCube has
 	ip.LinkCvar( "gc_net_ip" );
 	ip.SetRect( 340, 265, 560, 46 );
 
 	mask.SetNameAndStatus( L( "Subnet mask" ), L( "Usually 255.255.255.0" ));
 	PAGE_BIG( mask );
+	mask.SetCharSize( QM_BIGFONT ); mask.font = uiStatic.hDefaultFont; // big size, the one menu font the GameCube has
 	mask.LinkCvar( "gc_net_mask" );
 	mask.SetRect( 340, 360, 560, 46 );
 
 	gateway.SetNameAndStatus( L( "Gateway" ), L( "Your router address, for example 192.168.1.1" ));
 	PAGE_BIG( gateway );
+	gateway.SetCharSize( QM_BIGFONT ); gateway.font = uiStatic.hDefaultFont; // big size, the one menu font the GameCube has
 	gateway.LinkCvar( "gc_net_gw" );
 	gateway.SetRect( 340, 455, 560, 46 );
 
 	dns.SetNameAndStatus( L( "DNS server (optional)" ), L( "Used to find internet servers. Empty = gateway, then 1.1.1.1 and 8.8.8.8" ));
 	PAGE_BIG( dns );
+	dns.SetCharSize( QM_BIGFONT ); dns.font = uiStatic.hDefaultFont; // big size, the one menu font the GameCube has
 	dns.LinkCvar( "gc_net_dns" );
 	dns.SetRect( 340, 550, 560, 46 );
 
@@ -154,6 +175,20 @@ void CMenuNetwork::_Init()
 	PAGE_BIG( hint );
 	hint.szName = L( "A edit    B back" );
 	hint.SetRect( 340, 684, 600, 34 );
+	status.SetCharSize( QM_BIGFONT ); status.font = uiStatic.hDefaultFont; // big size, the one menu font the GameCube has
+	status.SetRect( 340, 615, 600, 40 );
+
+	note.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
+	note.colorBase = uiColorHelp;
+	note.SetCharSize( QM_BIGFONT ); note.font = uiStatic.hDefaultFont; // big size, the one menu font the GameCube has
+	note.szName = L( "Applies at next start" );
+	note.SetRect( 340, 655, 600, 40 );
+
+	hint.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
+	hint.colorBase = uiColorHelp;
+	hint.SetCharSize( QM_BIGFONT ); hint.font = uiStatic.hDefaultFont; // big size, the one menu font the GameCube has
+	hint.szName = L( "A edit    B back" );
+	hint.SetRect( 340, 695, 600, 40 );
 
 	AddItem( banner );
 	AddItem( panel );
