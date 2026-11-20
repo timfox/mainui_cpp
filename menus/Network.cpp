@@ -17,6 +17,7 @@ the Free Software Foundation; either version 2 of the License, or
 #include "CheckBox.h"
 #include "Field.h"
 #include "Action.h"
+#include "PagePanel.h"
 
 #define ART_BANNER "gfx/shell/head_advoptions"
 
@@ -50,6 +51,7 @@ private:
 	void UpdateEnabled();
 
 	CMenuPicButton *doneBtn = nullptr;
+	CMenuPagePanel panel;
 	CMenuPanel    panel;
 	CMenuCheckBox dhcp;
 	CMenuField    ip, mask, gateway, dns;
@@ -125,6 +127,7 @@ void CMenuNetwork::_Init()
 
 	dhcp.SetNameAndStatus( L( "Automatic address (DHCP)" ), L( "Get the IP address from your router. Turn off to enter one by hand" ));
 	dhcp.LinkCvar( "gc_net_dhcp" );
+	PAGE_BIG( dhcp );
 	dhcp.SetCharSize( QM_BIGFONT ); dhcp.font = uiStatic.hDefaultFont; // big size, the one menu font the GameCube has
 	dhcp.SetCoord( 340, 165 );
 	SET_EVENT_MULTI( dhcp.onChanged,
@@ -133,27 +136,45 @@ void CMenuNetwork::_Init()
 	});
 
 	ip.SetNameAndStatus( L( "IP address" ), L( "Console address, for example 192.168.1.50" ));
+	PAGE_BIG( ip );
 	ip.SetCharSize( QM_BIGFONT ); ip.font = uiStatic.hDefaultFont; // big size, the one menu font the GameCube has
 	ip.LinkCvar( "gc_net_ip" );
 	ip.SetRect( 340, 265, 560, 46 );
 
 	mask.SetNameAndStatus( L( "Subnet mask" ), L( "Usually 255.255.255.0" ));
+	PAGE_BIG( mask );
 	mask.SetCharSize( QM_BIGFONT ); mask.font = uiStatic.hDefaultFont; // big size, the one menu font the GameCube has
 	mask.LinkCvar( "gc_net_mask" );
 	mask.SetRect( 340, 360, 560, 46 );
 
 	gateway.SetNameAndStatus( L( "Gateway" ), L( "Your router address, for example 192.168.1.1" ));
+	PAGE_BIG( gateway );
 	gateway.SetCharSize( QM_BIGFONT ); gateway.font = uiStatic.hDefaultFont; // big size, the one menu font the GameCube has
 	gateway.LinkCvar( "gc_net_gw" );
 	gateway.SetRect( 340, 455, 560, 46 );
 
 	dns.SetNameAndStatus( L( "DNS server (optional)" ), L( "Used to find internet servers. Empty = gateway, then 1.1.1.1 and 8.8.8.8" ));
+	PAGE_BIG( dns );
 	dns.SetCharSize( QM_BIGFONT ); dns.font = uiStatic.hDefaultFont; // big size, the one menu font the GameCube has
 	dns.LinkCvar( "gc_net_dns" );
 	dns.SetRect( 340, 550, 560, 46 );
 
 	status.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
 	status.colorBase = uiColorHelp;
+	PAGE_BIG( status );
+	status.SetRect( 340, 610, 600, 34 );
+
+	note.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
+	note.colorBase = uiColorHelp;
+	PAGE_BIG( note );
+	note.szName = L( "Applies at next start" );
+	note.SetRect( 340, 646, 600, 34 );
+
+	hint.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
+	hint.colorBase = uiColorHelp;
+	PAGE_BIG( hint );
+	hint.szName = L( "A edit    B back" );
+	hint.SetRect( 340, 684, 600, 34 );
 	status.SetCharSize( QM_BIGFONT ); status.font = uiStatic.hDefaultFont; // big size, the one menu font the GameCube has
 	status.SetRect( 340, 615, 600, 40 );
 
