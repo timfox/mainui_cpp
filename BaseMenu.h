@@ -286,6 +286,7 @@ void UI_GameOptions_Menu( void );
 void UI_Network_Menu( void );
 void UI_PlayerName_Menu( void );
 void UI_PadLayout_Menu( void );
+void UI_Achievements_Menu( void );
 void UI_CreateGame_Menu( void );
 void UI_Audio_Menu( void );
 void UI_Video_Menu( void );

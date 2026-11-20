@@ -75,6 +75,10 @@ void CMenuOptions::_Init( void )
 #endif
 	AddButton( L( "Player" ), L( "Change your player name" ),
 		PC_CUSTOMIZE, UI_PlayerName_Menu, QMF_NOTIFY );
+#if XASH_GAMECUBE
+	AddButton( L( "Achievements" ), L( "See your Day of Defeat achievements" ),
+		PC_CUSTOMIZE, UI_Achievements_Menu, QMF_NOTIFY );
+#endif
 	AddButton( L( "Network" ), L( "Set up DHCP / static IP and DNS for LAN and internet play" ),
 		PC_ADV_OPT, UI_Network_Menu, QMF_NOTIFY );
 #if !XASH_GAMECUBE
