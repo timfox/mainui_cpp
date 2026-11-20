@@ -50,6 +50,9 @@ public:
 	CMenuMain() : CMenuFramework( "CMenuMain" ) { }
 
 	bool KeyDown( int key ) override;
+#if XASH_GAMECUBE
+	void Draw() override;
+#endif
 
 private:
 	void _Init() override;
@@ -92,6 +95,17 @@ private:
 	bool bTrainMap;
 	bool bCustomGame;
 };
+
+#if XASH_GAMECUBE
+// The main menu labels keep the look they have always had: no hardware resolution text on this page.
+void CMenuMain::Draw()
+{
+	EngFuncs::CvarSetValue( "gc_hitext_pause", 1.0f );
+	CMenuFramework::Draw();
+	EngFuncs::CvarSetValue( "gc_hitext_pause", 0.0f );
+}
+#endif
+
 
 void CMenuMain::QuitDialogCb()
 {
