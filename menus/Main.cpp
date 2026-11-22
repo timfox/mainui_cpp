@@ -41,6 +41,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static bool UI_IsDayOfDefeat()
 {
 	return !stricmp( gMenu.m_gameinfo.gamefolder, "dod" )
+		|| !stricmp( gMenu.m_gameinfo.gamefolder, "mohaa" ) /* mohaa-gc: mohaa over dod */
 		|| !stricmp( gMenu.m_gameinfo.title, "Day of Defeat" );
 }
 

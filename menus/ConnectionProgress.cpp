@@ -155,7 +155,8 @@ bool CMenuConnectionProgress::KeyDown( int key )
 		consoleButton.onReleased( &consoleButton );
 		PlayLocalSound( uiStatic.sounds[SND_LAUNCH] );
 	}
-	else if( key == 'A' || ( !stricmp( gMenu.m_gameinfo.gamefolder, "dod" ) && key == 'B' ) )
+	else if( key == 'A' || (( !stricmp( gMenu.m_gameinfo.gamefolder, "dod" )
+		|| !stricmp( gMenu.m_gameinfo.gamefolder, "mohaa" )) && key == 'B' ) )
 	{
 		HandleDisconnect();
 	}
@@ -331,7 +332,7 @@ void CMenuConnectionProgress::Draw( void )
 		Hide();
 		return;
 	}
-	if( stricmp( gMenu.m_gameinfo.gamefolder, "dod" ) )
+	if( stricmp( gMenu.m_gameinfo.gamefolder, "dod" ) && stricmp( gMenu.m_gameinfo.gamefolder, "mohaa" ) )
 		UI_FillRect( 0,0, gpGlobals->scrWidth, gpGlobals->scrHeight, m_iState == STATE_NONE ? 0xFF000000 : 0x40000000 );
 	CMenuBaseWindow::Draw();
 }

@@ -244,7 +244,8 @@ void CMenuMapListModel::Update( void )
 
 	/* The disc staging step writes the exact DoD map list. Re-scanning BSPs
 	 * on every Create Game open needlessly parses multi-megabyte lumps on GX. */
-	const bool dodMaps = !stricmp( gMenu.m_gameinfo.gamefolder, "dod" );
+	const bool dodMaps = !stricmp( gMenu.m_gameinfo.gamefolder, "dod" )
+		|| !stricmp( gMenu.m_gameinfo.gamefolder, "mohaa" ); /* mohaa-gc: mohaa over dod */
 	if(( !dodMaps && !EngFuncs::CreateMapsList( true ) )
 		|| (afile = (char *)EngFuncs::COM_LoadFile( "maps.lst", NULL )) == NULL )
 	{
