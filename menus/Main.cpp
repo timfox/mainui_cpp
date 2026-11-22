@@ -44,6 +44,152 @@ static bool UI_IsDayOfDefeat()
 		|| !stricmp( gMenu.m_gameinfo.title, "Day of Defeat" );
 }
 
+/*
+=================
+MOHAA room menu
+
+When the game folder has resource/gc_menu/mohaa_main.txt (written onto the SD card by mohaa-gc's
+converter from the player's own Medal of Honor: Allied Assault), the main menu is MOHAA's retail
+one: the war room is the background, and parts of the room are the buttons. The part under the
+cursor lights up and the green sign names it, as in ui/main.urc. Without the file the stock menu
+shows.
+
+	screen 640 480                      the room's screen (rects below are on it)
+	sign x y w h                        where the sign art goes
+	spot <action> x y w h hover sign    a part of the room: its lit image, its sign ('-': none)
+	button <action> x y w h pic focus   a picture button (Quit, Back to game)
+	sound launch|out <path>             the menu's click sounds
+=================
+*/
+#define MOHAA_ROOM_LAYOUT	"resource/gc_menu/mohaa_main.txt"
+#define MOHAA_ROOM_MAX_SPOTS	10
+
+struct mohaaRect_t
+{
+	int x, y, w, h;
+};
+
+// The room drawn the way CMenuBackgroundBitmap draws the background sheet: scaled to cover the
+// screen keeping its aspect (or stretched, with ui_background_stretch), centred.
+static void UI_MohaaRoomToScreen( const mohaaRect_t &r, int roomW, int roomH, Point &pt, Size &sz )
+{
+	float xScale, yScale;
+	int xOffset = 0, yOffset = 0;
+
+	if( roomW <= 0 || roomH <= 0 )
+		roomW = 640, roomH = 480;
+	if( EngFuncs::GetCvarFloat( "ui_background_stretch" ))
+	{
+		xScale = (float)ScreenWidth / roomW;
+		yScale = (float)ScreenHeight / roomH;
+	}
+	else
+	{
+		if( ScreenWidth * roomH > ScreenHeight * roomW )
+			xScale = yScale = (float)ScreenWidth / roomW;
+		else
+			xScale = yScale = (float)ScreenHeight / roomH;
+		xOffset = (int)(( ScreenWidth - roomW * xScale ) / 2 );
+		yOffset = (int)(( ScreenHeight - roomH * yScale ) / 2 );
+	}
+	pt = Point( xOffset + (int)( r.x * xScale ), yOffset + (int)( r.y * yScale ));
+	sz = Size( (int)( r.w * xScale + 0.5f ), (int)( r.h * yScale + 0.5f ));
+}
+
+class CMenuMohaaSpot : public CMenuBaseItem
+{
+public:
+	typedef CMenuBaseItem BaseClass;
+
+	CMenuMohaaSpot() : BaseClass(), isButton( false ), loaded( false ), roomW( 640 ), roomH( 480 )
+	{
+		rect.x = rect.y = rect.w = rect.h = 0;
+		signRect = rect;
+		picPath[0] = focusPath[0] = '\0';
+	}
+
+	void VidInit( void ) override
+	{
+		iFlags |= QMF_DISABLESCAILING;
+		UI_MohaaRoomToScreen( rect, roomW, roomH, pos, size );
+		UI_MohaaRoomToScreen( signRect, roomW, roomH, signPos, signSize );
+		BaseClass::VidInit();
+	}
+
+	bool KeyDown( int key ) override
+	{
+		if(( UI::Key::IsEnter( key ) && !( iFlags & QMF_MOUSEONLY ))
+			|| ( UI::Key::IsLeftMouse( key ) && ( iFlags & QMF_HASMOUSEFOCUS )))
+		{
+			_Event( QM_RELEASED );
+			return true;
+		}
+		return false;
+	}
+
+	bool KeyUp( int key ) override
+	{
+		if(( UI::Key::IsEnter( key ) && !( iFlags & QMF_MOUSEONLY ))
+			|| ( UI::Key::IsLeftMouse( key ) && ( iFlags & QMF_HASMOUSEFOCUS )))
+		{
+			_Event( QM_PRESSED );
+			PlayLocalSound( uiStatic.sounds[SND_LAUNCH] );
+			return true;
+		}
+		return false;
+	}
+
+	void Draw( void ) override
+	{
+		const bool focused = this == m_pParent->ItemAtCursor() && !( iFlags & QMF_GRAYED );
+
+		if( isButton )
+		{
+			if( !loaded )
+			{
+				pic.Load( picPath );
+				focusPic.Load( focusPath );
+				loaded = true;
+			}
+			UI_DrawPic( m_scPos, m_scSize, uiColorWhite, focused && focusPic.IsValid() ? focusPic : pic );
+			return;
+		}
+
+		// A spot's art is only in memory while it is lit: one hover image and one sign at a time.
+		if( !focused )
+		{
+			if( loaded )
+			{
+				pic.ForceUnload();
+				focusPic.ForceUnload();
+				loaded = false;
+			}
+			return;
+		}
+		if( !loaded )
+		{
+			pic.Load( picPath );
+			if( focusPath[0] )
+				focusPic.Load( focusPath );
+			loaded = true;
+		}
+		if( pic.IsValid( ))
+			UI_DrawPic( m_scPos, m_scSize, uiColorWhite, pic );
+		if( focusPic.IsValid( ) && signSize.w > 0 )
+			UI_DrawPic( signPos, signSize, uiColorWhite, focusPic );
+	}
+
+	bool isButton;
+	bool loaded;
+	int roomW, roomH;
+	mohaaRect_t rect, signRect;
+	char picPath[96];	// spot: lit image; button: normal
+	char focusPath[96];	// spot: sign; button: focused
+	CImage pic, focusPic;
+	Point signPos;
+	Size signSize;
+};
+
 class CMenuMain: public CMenuFramework
 {
 public:
@@ -94,7 +240,147 @@ private:
 
 	bool bTrainMap;
 	bool bCustomGame;
+
+	// MOHAA room menu (resource/gc_menu/mohaa_main.txt)
+	bool LoadMohaaRoom( void );
+	void MohaaVidInit( bool connected );
+	void MohaaAction( CMenuMohaaSpot &item, const char *action );
+	bool mohaaRoom;
+	int mohaaSpotCount;
+	CMenuMohaaSpot mohaaSpots[MOHAA_ROOM_MAX_SPOTS];
+	CMenuMohaaSpot mohaaQuit;
+	CMenuMohaaSpot mohaaResume;
 };
+
+void CMenuMain::MohaaAction( CMenuMohaaSpot &item, const char *action )
+{
+	if( !stricmp( action, "newgame" ))
+		item.onReleased = ( gMenu.m_gameinfo.gamemode == GAME_MULTIPLAYER_ONLY || UI_IsDayOfDefeat() || !gMenu.m_gameinfo.startmap[0] )
+			? UI_CreateGame_Menu : UI_NewGame_Menu;
+	else if( !stricmp( action, "multiplayer" ))
+		item.onReleased = UI_InternetGames_Menu;
+	else if( !stricmp( action, "options" ))
+		item.onReleased = UI_Options_Menu;
+	else if( !stricmp( action, "records" ))
+	{
+		// War records: MOHAA's load/save and medal case. Saves need the game dll.
+		item.onReleased = UI_SaveLoad_Menu;
+		if( !EngFuncs::CheckGameDll() || gMenu.m_gameinfo.gamemode == GAME_MULTIPLAYER_ONLY )
+			item.SetGrayed( true );
+	}
+	else if( !stricmp( action, "credits" ))
+		item.onReleased = UI_FinalCredits;
+	else if( !stricmp( action, "quit" ))
+		item.onReleased = VoidCb( &CMenuMain::QuitDialogCb );
+	else if( !stricmp( action, "resume" ))
+		item.onReleased = UI_CloseMenu;
+	else
+		item.SetGrayed( true );
+}
+
+bool CMenuMain::LoadMohaaRoom( void )
+{
+	char *afile, *pfile;
+	char token[256];
+	mohaaRect_t sign = { 0, 0, 0, 0 };
+	int roomW = 640, roomH = 480;
+
+	mohaaRoom = false;
+	mohaaSpotCount = 0;
+	if( !EngFuncs::FileExists( MOHAA_ROOM_LAYOUT ))
+		return false;
+	afile = (char *)EngFuncs::COM_LoadFile( MOHAA_ROOM_LAYOUT );
+	if( !afile )
+		return false;
+
+	pfile = afile;
+	while(( pfile = EngFuncs::COM_ParseFile( pfile, token, sizeof( token ))))
+	{
+		if( !strcmp( token, "screen" ) || !strcmp( token, "sign" ))
+		{
+			const bool isSign = token[1] == 'i';
+			int v[4] = { 0, 0, 0, 0 };
+			for( int i = 0; i < ( isSign ? 4 : 2 ) && pfile; i++ )
+			{
+				pfile = EngFuncs::COM_ParseFile( pfile, token, sizeof( token ));
+				v[i] = atoi( token );
+			}
+			if( isSign )
+				sign.x = v[0], sign.y = v[1], sign.w = v[2], sign.h = v[3];
+			else if( v[0] > 0 && v[1] > 0 )
+				roomW = v[0], roomH = v[1];
+		}
+		else if( !strcmp( token, "spot" ) || !strcmp( token, "button" ))
+		{
+			const bool isButton = token[0] == 'b';
+			char action[32];
+			mohaaRect_t r;
+			char pic[96], focus[96];
+
+			if( !( pfile = EngFuncs::COM_ParseFile( pfile, action, sizeof( action )))) break;
+			if( !( pfile = EngFuncs::COM_ParseFile( pfile, token, sizeof( token )))) break;
+			r.x = atoi( token );
+			if( !( pfile = EngFuncs::COM_ParseFile( pfile, token, sizeof( token )))) break;
+			r.y = atoi( token );
+			if( !( pfile = EngFuncs::COM_ParseFile( pfile, token, sizeof( token )))) break;
+			r.w = atoi( token );
+			if( !( pfile = EngFuncs::COM_ParseFile( pfile, token, sizeof( token )))) break;
+			r.h = atoi( token );
+			if( !( pfile = EngFuncs::COM_ParseFile( pfile, pic, sizeof( pic )))) break;
+			if( !( pfile = EngFuncs::COM_ParseFile( pfile, focus, sizeof( focus )))) break;
+			if( !strcmp( focus, "-" ))
+				focus[0] = '\0';
+
+			CMenuMohaaSpot *item;
+			if( isButton && !stricmp( action, "quit" ))
+				item = &mohaaQuit;
+			else if( isButton && !stricmp( action, "resume" ))
+				item = &mohaaResume;
+			else if( !isButton && mohaaSpotCount < MOHAA_ROOM_MAX_SPOTS )
+				item = &mohaaSpots[mohaaSpotCount++];
+			else
+				continue;
+			item->isButton = isButton;
+			item->rect = r;
+			Q_strncpy( item->picPath, pic, sizeof( item->picPath ));
+			Q_strncpy( item->focusPath, focus, sizeof( item->focusPath ));
+			item->szName = item->picPath;
+			MohaaAction( *item, action );
+		}
+		else if( !strcmp( token, "sound" ))
+		{
+			char which[16];
+			if( !( pfile = EngFuncs::COM_ParseFile( pfile, which, sizeof( which )))) break;
+			if( !( pfile = EngFuncs::COM_ParseFile( pfile, token, sizeof( token )))) break;
+			int snd = !stricmp( which, "launch" ) ? SND_LAUNCH : !stricmp( which, "out" ) ? SND_OUT : -1;
+			if( snd >= 0 && EngFuncs::FileExists( token ))
+				Q_strncpy( uiStatic.sounds[snd], token, sizeof( uiStatic.sounds[snd] ));
+		}
+		// anything else ("//" comments are skipped by the parser): ignore the token
+	}
+	EngFuncs::COM_FreeFile( afile );
+
+	if( !mohaaSpotCount )
+		return false;
+	for( int i = 0; i < mohaaSpotCount; i++ )
+	{
+		mohaaSpots[i].signRect = sign;
+		mohaaSpots[i].roomW = roomW, mohaaSpots[i].roomH = roomH;
+	}
+	mohaaQuit.roomW = mohaaResume.roomW = roomW;
+	mohaaQuit.roomH = mohaaResume.roomH = roomH;
+	mohaaRoom = true;
+	Con_Printf( "MOHAA main menu: %d room spots from " MOHAA_ROOM_LAYOUT "\n", mohaaSpotCount );
+	return true;
+}
+
+void CMenuMain::MohaaVidInit( bool connected )
+{
+	// Back to game only while a game runs; Quit only from the front (retail keeps both, but the
+	// GameCube has no desktop to quit to while playing).
+	mohaaResume.SetVisibility( connected && mohaaResume.picPath[0] );
+	mohaaQuit.SetVisibility( !connected && mohaaQuit.picPath[0] );
+}
 
 #if XASH_GAMECUBE
 // The main menu labels keep the look they have always had: no hardware resolution text on this page.
@@ -208,6 +494,18 @@ void CMenuMain::HazardCourseCb()
 
 void CMenuMain::_Init( void )
 {
+	if( LoadMohaaRoom( ))
+	{
+		dialog.Link( this );
+		for( int i = 0; i < mohaaSpotCount; i++ )
+			AddItem( mohaaSpots[i] );
+		if( mohaaResume.picPath[0] )
+			AddItem( mohaaResume );
+		if( mohaaQuit.picPath[0] )
+			AddItem( mohaaQuit );
+		return;
+	}
+
 	const bool dodRetail = UI_IsDayOfDefeat();
 #if XASH_GAMECUBE
 	/* -gcmenuplaystart already tips MEM1 before UI_Main_Menu; btn_*.tga
@@ -572,6 +870,11 @@ void CMenuMain::VidInit( bool connected )
 
 void CMenuMain::_VidInit()
 {
+	if( mohaaRoom )
+	{
+		MohaaVidInit( CL_IsActive( ));
+		return;
+	}
 	VidInit( CL_IsActive() );
 }
 
