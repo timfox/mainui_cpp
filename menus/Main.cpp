@@ -287,7 +287,7 @@ void CMenuMain::MohaaAction( CMenuMohaaSpot &item, const char *action )
 			item.SetGrayed( true );
 	}
 	else if( !stricmp( action, "credits" ))
-		item.onReleased = UI_FinalCredits;
+		item.onReleased = UI_Credits_Menu;
 	else if( !stricmp( action, "quit" ))
 		item.onReleased = VoidCb( &CMenuMain::QuitDialogCb );
 	else if( !stricmp( action, "resume" ))

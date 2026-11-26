@@ -62,6 +62,7 @@ public:
 
 	friend void UI_DrawFinalCredits( void );
 	friend void UI_FinalCredits( void );
+	friend void UI_Credits_Menu( void );
 	friend int UI_CreditsActive( void );
 
 private:
@@ -86,7 +87,9 @@ CMenuCredits::~CMenuCredits()
 void CMenuCredits::Show()
 {
 	CMenuBaseWindow::Show();
-	EngFuncs::KEY_SetDest( KEY_GAME );
+	// Final credits run over the game; the credits picked from a menu stay a menu window.
+	if( finalCredits )
+		EngFuncs::KEY_SetDest( KEY_GAME );
 }
 
 /*
@@ -170,8 +173,9 @@ void CMenuCredits::_Init( void )
 		char	*p;
 
 		// load credits if needed
+		count = 0;
 		buffer = (char *)EngFuncs::COM_LoadFile( UI_CREDITS_PATH, &count );
-		if( count )
+		if( buffer && count > 0 )
 		{
 			if( buffer[count - 1] != '\n' && buffer[count - 1] != '\r' )
 			{
@@ -259,4 +263,16 @@ void UI_FinalCredits( void )
 	menu_credits->EnableFinalCredits( true );
 	// don't create a window
 	// menu_credits->Show();
+}
+
+// Credits rolled from the menu (the MOHAA room's projector): a window over the menu that any
+// key closes, instead of the end-of-game credits, which only draw while a game runs.
+void UI_Credits_Menu( void )
+{
+	menu_credits_Precache();
+	menu_credits->Init();
+	menu_credits->VidInit();
+	menu_credits->EnableFinalCredits( false );
+	menu_credits->Reload();
+	menu_credits->Show();
 }
