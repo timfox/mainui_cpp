@@ -111,6 +111,7 @@ public:
 	bool Load( const char *name );
 	bool KeyDown( int key ) override;
 	void Hide( void ) override;
+	void Release( void );
 
 	char page[32];
 
@@ -288,14 +289,19 @@ bool CMenuMohaaPage::KeyDown( int key )
 	return BaseClass::KeyDown( key );
 }
 
-void CMenuMohaaPage::Hide( void )
+void CMenuMohaaPage::Release( void )
 {
-	// The picture is 150 KiB of texture memory, and the lit card up to 64 KiB: give them back as
-	// the page goes.
+	// The picture is 150 KiB of texture memory, and the lit card up to 64 KiB. They load again
+	// when the page is back on top.
 	backdrop.Unload();
 	for( int i = 0; i < spotCount; i++ )
 		spots[i].Unload();
 	back.Unload();
+}
+
+void CMenuMohaaPage::Hide( void )
+{
+	Release();	// give the art back as the page goes
 	BaseClass::Hide();
 }
 
@@ -335,6 +341,21 @@ bool UI_MohaaPage_Menu( const char *name )
 	}
 	mohaaPages[i]->Show();
 	return true;
+}
+
+/*
+=================
+UI_MohaaPages_Release
+
+Let every page's art go (a page covered by another one, such as the game type cards under Create
+Server's form, does not draw, so it cannot see it is covered). It loads again when a page is on top.
+=================
+*/
+void UI_MohaaPages_Release( void )
+{
+	for( int i = 0; i < MOHAA_PAGES; i++ )
+		if( mohaaPages[i] )
+			mohaaPages[i]->Release();
 }
 
 static void UI_MohaaPages_Shutdown( void )
