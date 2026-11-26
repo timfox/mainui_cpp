@@ -89,8 +89,18 @@ void CMenuOptions::_Init( void )
 		PC_DONE, VoidCb( &CMenuOptions::Hide ), QMF_NOTIFY );
 }
 
+bool UI_MohaaPage_Menu( const char *name );
+
 ADD_MENU3( menu_options, CMenuOptions, UI_Options_Menu );
 void UI_Options_Menu( void )
+{
+	// MOHAA's retail options desk when the SD card has it; its Advanced opens this list
+	if( UI_MohaaPage_Menu( "options" ))
+		return;
+	UI_OptionsList_Menu();
+}
+
+void UI_OptionsList_Menu( void )
 {
 	menu_options_Precache();
 	Con_Printf( "Xash3D GameCube: retail menu options opened\n" );
