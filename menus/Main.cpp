@@ -116,6 +116,22 @@ public:
 		BaseClass::VidInit();
 	}
 
+#if XASH_GAMECUBE
+	// The pad drives the room: no pointer may take focus. The map and the war records desk
+	// overlap in ui/main.urc, and a cursor update landing in the overlap pulled focus off the
+	// map onto the desk, so the D-pad never stopped on New Game.
+	bool MouseMove( int x, int y ) override
+	{
+		static int logs;
+		if( logs < 8 )
+		{
+			logs++;
+			Con_DPrintf( "MOHAA main menu: pointer at %d %d ignored on %s\n", x, y, picPath );
+		}
+		return false;
+	}
+#endif
+
 	bool KeyDown( int key ) override
 	{
 		if(( UI::Key::IsEnter( key ) && !( iFlags & QMF_MOUSEONLY ))
