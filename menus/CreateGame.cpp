@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Action.h"
 #include "YesNoMessageBox.h"
 #include "Table.h"
+#include "MohaaRoom.h"
 #include <new>
 
 #define ART_BANNER		"gfx/shell/head_creategame"
@@ -44,6 +45,8 @@ struct map_t
 	char name[CS_SIZE];
 	char desc[CS_SIZE];
 };
+
+void UI_MohaaPages_Release( void );
 
 class CMenuCreateGame;
 class CMenuMapListModel : public CMenuBaseModel, public CUtlVector<map_t>
@@ -104,6 +107,136 @@ static CreateGameLayout CreateGame_GetLayout( void )
 	return l;
 }
 
+/* MOHAA's retail Create Server form (ui/multiplayerstart_ffa.urc) when the SD card has it:
+ * resource/gc_menu/mohaa_server.txt, written by mohaa-gc's converter (tools/mohaa_menu.py) from the
+ * player's own game. The form's picture is the page; the server name, map and players are written
+ * on it where retail's fields are, and Select Map, Start Game and Back light up as retail lights them.
+ *
+ *	screen 640 480
+ *	background tl tr bl br                     the picture in four quadrants (GX CMPR .cmp)
+ *	spot <map|start> x y w h lit -             a button painted on the picture, and its lit image
+ *	button back x y w h pic focus
+ *	field <hostname|map|maxplayers|fraglimit|timelimit> x y w h r g b   where a value goes, its ink */
+enum { MOHAA_FORM_HOSTNAME, MOHAA_FORM_MAP, MOHAA_FORM_MAXPLAYERS, MOHAA_FORM_FRAGLIMIT, MOHAA_FORM_TIMELIMIT, MOHAA_FORM_FIELDS };
+static const char *const mohaaFormFields[MOHAA_FORM_FIELDS] = { "hostname", "map", "maxplayers", "fraglimit", "timelimit" };
+
+struct CreateGameRetail
+{
+	bool tried, ok, loaded;
+	int roomW, roomH;
+	char quad[4][96];
+	bool hasField[MOHAA_FORM_FIELDS];
+	mohaaRect_t field[MOHAA_FORM_FIELDS];
+	unsigned int ink[MOHAA_FORM_FIELDS];
+	mohaaRect_t spot[2];		// 0 Select Map, 1 Start Game
+	char lit[2][96];
+	mohaaRect_t back;
+	char backPic[96], backFocus[96];
+	CImage quadImg[4], litImg[2], backImg, backFocusImg;
+
+	bool Load( void );
+	void Unload( void );
+	void Screen( const mohaaRect_t &r, Point &pt, Size &sz ) const { UI_MohaaRoomToScreen( r, roomW, roomH, pt, sz ); }
+	bool Hit( const mohaaRect_t &r, int x, int y ) const
+	{
+		Point pt; Size sz;
+		Screen( r, pt, sz );
+		return x >= pt.x && x < pt.x + sz.w && y >= pt.y && y < pt.y + sz.h;
+	}
+};
+
+bool CreateGameRetail::Load( void )
+{
+	const char *path = "resource/gc_menu/mohaa_server.txt";
+	char token[256];
+	char *afile, *pfile;
+
+	if( tried )
+		return ok;
+	tried = true;
+	roomW = 640, roomH = 480;
+	if( !EngFuncs::FileExists( path ) || !( afile = (char *)EngFuncs::COM_LoadFile( path )))
+		return false;
+	pfile = afile;
+	while(( pfile = EngFuncs::COM_ParseFile( pfile, token, sizeof( token ))))
+	{
+		if( !strcmp( token, "screen" ))
+		{
+			int v[2] = { 0, 0 };
+			for( int i = 0; i < 2 && pfile; i++ )
+			{
+				pfile = EngFuncs::COM_ParseFile( pfile, token, sizeof( token ));
+				v[i] = atoi( token );
+			}
+			if( v[0] > 0 && v[1] > 0 )
+				roomW = v[0], roomH = v[1];
+		}
+		else if( !strcmp( token, "background" ))
+		{
+			for( int i = 0; i < 4 && pfile; i++ )
+				pfile = EngFuncs::COM_ParseFile( pfile, quad[i], sizeof( quad[i] ));
+		}
+		else if( !strcmp( token, "spot" ) || !strcmp( token, "button" ) || !strcmp( token, "field" ))
+		{
+			const char kind = token[0];
+			char name[32], a[96], b[96];
+			int v[7] = { 0, 0, 0, 0, 0, 0, 0 };
+			const int n = kind == 'f' ? 7 : 4;
+
+			if( !( pfile = EngFuncs::COM_ParseFile( pfile, name, sizeof( name )))) break;
+			for( int i = 0; i < n && pfile; i++ )
+			{
+				pfile = EngFuncs::COM_ParseFile( pfile, token, sizeof( token ));
+				v[i] = atoi( token );
+			}
+			if( !pfile ) break;
+			const mohaaRect_t r = { v[0], v[1], v[2], v[3] };
+			if( kind == 'f' )
+			{
+				for( int i = 0; i < MOHAA_FORM_FIELDS; i++ )
+					if( !stricmp( name, mohaaFormFields[i] ))
+					{
+						hasField[i] = true;
+						field[i] = r;
+						ink[i] = PackRGBA( v[4], v[5], v[6], 255 );
+					}
+				continue;
+			}
+			if( !( pfile = EngFuncs::COM_ParseFile( pfile, a, sizeof( a )))) break;
+			if( !( pfile = EngFuncs::COM_ParseFile( pfile, b, sizeof( b )))) break;
+			if( kind == 'b' && !stricmp( name, "back" ))
+			{
+				back = r;
+				Q_strncpy( backPic, a, sizeof( backPic ));
+				Q_strncpy( backFocus, b, sizeof( backFocus ));
+			}
+			else if( kind == 's' && ( !stricmp( name, "map" ) || !stricmp( name, "start" )))
+			{
+				const int i = !stricmp( name, "start" );
+				spot[i] = r;
+				Q_strncpy( lit[i], a, sizeof( lit[i] ));
+			}
+		}
+	}
+	EngFuncs::COM_FreeFile( afile );
+	ok = quad[0][0] && lit[1][0] && hasField[MOHAA_FORM_HOSTNAME];
+	Con_Printf( "MOHAA menu: Create Server %s %s\n", ok ? "form from" : "has no picture or fields in", path );
+	return ok;
+}
+
+void CreateGameRetail::Unload( void )
+{
+	if( !loaded )
+		return;
+	for( int i = 0; i < 4; i++ )
+		quadImg[i].ForceUnload();
+	litImg[0].ForceUnload();
+	litImg[1].ForceUnload();
+	backImg.ForceUnload();
+	backFocusImg.ForceUnload();
+	loaded = false;
+}
+
 class CMenuCreateGame : public CMenuFramework
 {
 public:
@@ -112,6 +245,7 @@ public:
 	static void Begin( CMenuBaseItem *pSelf, void *pExtra );
 
 	void Show() override;
+	void Hide() override;
 	void Reload( void ) override;
 	void SaveCvars( void );
 	bool KeyDown( int key ) override;
@@ -133,6 +267,10 @@ public:
 protected:
 	void Draw() override;
 private:
+	CreateGameRetail retail = {};
+	void DrawRetail();
+	bool Retail() const { return retail.ok; }
+	void StepRow( int dir );
 	void _Init() override;
 	// Pad navigation: the page is drawn by hand, so it keeps its own cursor.
 	// rows: 0 server name, 1 map, 2 password, 3 Start, 4 Cancel
@@ -395,8 +533,99 @@ void CMenuCreateGame::_VidInit()
 	mapsList.Hide(); done->Hide(); cancel->Hide();
 }
 
+void CMenuCreateGame::DrawRetail()
+{
+	// A closing (or covered) form lets its picture go; the picture holds four CMPR tiles.
+	if( !UI_MohaaOnTop( this ))
+	{
+		retail.Unload();
+		return;
+	}
+	if( !retail.loaded )
+	{
+		for( int i = 0; i < 4; i++ )
+			if( retail.quad[i][0] )
+				retail.quadImg[i].Load( retail.quad[i] );
+		if( retail.backPic[0] )
+		{
+			retail.backImg.Load( retail.backPic );
+			retail.backFocusImg.Load( retail.backFocus );
+		}
+		retail.loaded = true;
+	}
+
+	Point pt;
+	Size sz;
+	for( int i = 0; i < 4; i++ )
+	{
+		mohaaRect_t q;
+		q.w = retail.roomW / 2, q.h = retail.roomH / 2;
+		q.x = ( i & 1 ) ? q.w : 0, q.y = ( i & 2 ) ? q.h : 0;
+		retail.Screen( q, pt, sz );
+		if( retail.quadImg[i].IsValid( ))
+			UI_DrawPic( pt, sz, uiColorWhite, retail.quadImg[i] );
+	}
+
+	// Select Map and Start Game are painted on the form: retail lights them under the cursor. Only the
+	// lit one is in memory.
+	const int litSpot = row == 1 ? 0 : row == 3 ? 1 : -1;
+	for( int i = 0; i < 2; i++ )
+	{
+		if( i != litSpot && retail.litImg[i].IsValid( ))
+			retail.litImg[i].ForceUnload();
+	}
+	if( litSpot >= 0 && retail.lit[litSpot][0] )
+	{
+		if( !retail.litImg[litSpot].IsValid( ))
+			retail.litImg[litSpot].Load( retail.lit[litSpot] );
+		retail.Screen( retail.spot[litSpot], pt, sz );
+		if( retail.litImg[litSpot].IsValid( ))
+			UI_DrawPic( pt, sz, uiColorWhite, retail.litImg[litSpot] );
+	}
+	if( retail.backPic[0] )
+	{
+		retail.Screen( retail.back, pt, sz );
+		CImage &pic = row == 4 && retail.backFocusImg.IsValid() ? retail.backFocusImg : retail.backImg;
+		if( pic.IsValid( ))
+			UI_DrawPic( pt, sz, uiColorWhite, pic );
+	}
+
+	// The values, in retail's fields
+	char fragBuf[16], timeBuf[16];
+	int index = mapsList.GetCurrentIndex();
+	const char *map = index <= 0 || !mapsListModel.IsValidIndex( index ) ? "< Random Map >" : mapsListModel.Element( index ).name;
+	Q_strncpy( fragBuf, EngFuncs::GetCvarString( "fraglimit" ), sizeof( fragBuf ));
+	Q_strncpy( timeBuf, EngFuncs::GetCvarString( "timelimit" ), sizeof( timeBuf ));
+	const char *values[MOHAA_FORM_FIELDS] = { hostName.GetBuffer(), map, maxClients.GetBuffer(), fragBuf, timeBuf };
+	const uint textFlags = ETF_FORCECOL | ETF_NOSIZELIMIT;
+	for( int i = 0; i < MOHAA_FORM_FIELDS; i++ )
+	{
+		if( !retail.hasField[i] )
+			continue;
+		retail.Screen( retail.field[i], pt, sz );
+		const int charH = Q_max( 8, sz.h * 6 / 10 );
+		const int pad = Q_max( 2, sz.h / 7 );
+		UI_DrawString( uiStatic.hDefaultFont, pt.x + pad, pt.y + ( sz.h - charH ) / 2, sz.w - pad * 2, charH,
+			values[i] ? values[i] : "", retail.ink[i], charH, QM_LEFT, textFlags );
+		// the pad cursor: a frame round the field it is on, and a caret while typing
+		const bool on = ( i == MOHAA_FORM_HOSTNAME && row == 0 ) || ( i == MOHAA_FORM_MAP && row == 1 );
+		if( on )
+		{
+			UI_DrawRectangleExt( pt.x - 2, pt.y - 2, sz.w + 4, sz.h + 4, retail.ink[i], 2 );
+			if( editing )
+				UI_DrawString( uiStatic.hDefaultFont, pt.x + sz.w - charH, pt.y + ( sz.h - charH ) / 2, charH, charH,
+					"_", retail.ink[i], charH, QM_LEFT, textFlags );
+		}
+	}
+}
+
 void CMenuCreateGame::Draw()
 {
+	if( Retail( ))
+	{
+		DrawRetail();
+		return;
+	}
 	int w = gpGlobals->scrWidth, h = gpGlobals->scrHeight;
 	int x = w * 200 / 1000, y = h * 80 / 1000, pw = w * 600 / 1000, ph = h * 840 / 1000;
 	EngFuncs::FillRGBA( x, y, pw, ph, 55, 43, 29, 255 );
@@ -478,7 +707,15 @@ void CMenuCreateGame::BeginEdit( int what )
 	editing = what;
 	Q_strncpy( oldText, EditField()->GetBuffer(), sizeof( oldText ));
 	// tell the built-in keyboard where the field is and what it holds
-	EngFuncs::SetTextInputRect( L.ctlX, L.rowY[what == 1 ? 0 : 3], L.ctlW, L.rowH );
+	if( Retail( ))
+	{
+		Point pt;
+		Size sz;
+		retail.Screen( retail.field[MOHAA_FORM_HOSTNAME], pt, sz );
+		EngFuncs::SetTextInputRect( pt.x, pt.y, sz.w, sz.h );
+	}
+	else
+		EngFuncs::SetTextInputRect( L.ctlX, L.rowY[what == 1 ? 0 : 3], L.ctlW, L.rowH );
 	EngFuncs::SetTextInputBuffer( EditField()->GetBuffer() );
 	UI_EnableTextInput( true );
 }
@@ -532,8 +769,8 @@ bool CMenuCreateGame::KeyDown( int key )
 
 	if( UI::Key::IsEscape( key ) || key == 'B' ) { Hide(); return true; }
 
-	if( UI::Key::IsUpArrow( key ) ) { row = ( row + 4 ) % 5; return true; }
-	if( UI::Key::IsDownArrow( key ) ) { row = ( row + 1 ) % 5; return true; }
+	if( UI::Key::IsUpArrow( key ) ) { StepRow( -1 ); return true; }
+	if( UI::Key::IsDownArrow( key ) ) { StepRow( 1 ); return true; }
 
 	if( UI::Key::IsLeftArrow( key ) || UI::Key::IsRightArrow( key ) )
 	{
@@ -563,8 +800,40 @@ bool CMenuCreateGame::KeyDown( int key )
 	return CMenuFramework::KeyDown( key );
 }
 
+void CMenuCreateGame::StepRow( int dir )
+{
+	if( !Retail( ))
+	{
+		row = ( row + 5 + dir ) % 5;
+		return;
+	}
+	// MOHAA's form top to bottom: Select Map, server name, Start Game, Back (it has no password)
+	static const int order[4] = { 1, 0, 3, 4 };
+	int at = 0;
+	for( int i = 0; i < 4; i++ )
+		if( order[i] == row )
+			at = i;
+	row = order[( at + 4 + dir ) % 4];
+	PlayLocalSound( uiStatic.sounds[SND_MOVE] );
+}
+
 bool CMenuCreateGame::KeyUp( int key )
 {
+	if( UI::Key::IsLeftMouse( key ) && Retail( ))
+	{
+		const int cx = uiStatic.cursorX, cy = uiStatic.cursorY;
+		if( retail.backPic[0] && retail.Hit( retail.back, cx, cy )) { Hide(); return true; }
+		if( retail.Hit( retail.spot[1], cx, cy )) { if( CL_IsActive() ) msgBox.Show(); else Begin( done, NULL ); return true; }
+		if( retail.Hit( retail.field[MOHAA_FORM_HOSTNAME], cx, cy )) { row = 0; BeginEdit( 1 ); return true; }
+		if( retail.Hit( retail.spot[0], cx, cy ) || ( retail.hasField[MOHAA_FORM_MAP] && retail.Hit( retail.field[MOHAA_FORM_MAP], cx, cy )))
+		{
+			int n = mapsListModel.Count(), i = mapsList.GetCurrentIndex();
+			row = 1;
+			if( n > 0 ) mapsList.SetCurrentIndex( ( i + 1 ) % n );
+			return true;
+		}
+		return CMenuFramework::KeyUp( key );
+	}
 	if( UI::Key::IsLeftMouse( key ) )
 	{
 		int x = gpGlobals->scrWidth * 200 / 1000, y = gpGlobals->scrHeight * 181 / 1000;
@@ -603,7 +872,21 @@ void CMenuCreateGame::Show()
 	row = 3;
 	editing = 0;
 
+	if( retail.Load( ))
+	{
+		// The game type cards below hold their picture's four CMPR tiles: let them go first, there
+		// is room for the war room's and one page's at a time.
+		UI_MohaaPages_Release();
+	}
+
 	CMenuBaseWindow::Show();
+}
+
+void CMenuCreateGame::Hide()
+{
+	EndEdit( false );
+	retail.Unload();
+	CMenuFramework::Hide();
 }
 
 void CMenuCreateGame::SaveCvars()
