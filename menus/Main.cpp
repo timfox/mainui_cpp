@@ -96,6 +96,8 @@ static void UI_MohaaRoomToScreen( const mohaaRect_t &r, int roomW, int roomH, Po
 	sz = Size( (int)( r.w * xScale + 0.5f ), (int)( r.h * yScale + 0.5f ));
 }
 
+#define MOHAA_ROOM_NAV_REPEAT_MS 150
+
 class CMenuMohaaSpot : public CMenuBaseItem
 {
 public:
@@ -482,6 +484,20 @@ bool CMenuMain::KeyDown( int key )
 #endif
 		}
 		return true;
+	}
+	if( mohaaRoom && dialog.IsVisible() == false && UI::Key::IsNavigationKey( key ))
+	{
+		// One press, one step. In Dolphin a second D-pad press came 65-85 ms after the first one
+		// that lit the map spot (its art loads on focus), and focus went straight past New Game.
+		// Nobody taps the D-pad twice that fast on purpose.
+		static int lastNavTime = -1000;
+		const int now = uiStatic.realTime;
+		if( now - lastNavTime >= 0 && now - lastNavTime < MOHAA_ROOM_NAV_REPEAT_MS )
+		{
+			Con_DPrintf( "MOHAA main menu: second step %d ms after the last one dropped\n", now - lastNavTime );
+			return true;
+		}
+		lastNavTime = now;
 	}
 	return CMenuFramework::KeyDown( key );
 }
