@@ -650,7 +650,18 @@ static void menu_creategame_Shutdown( void )
 
 ADD_MENU4( menu_creategame, menu_creategame_Precache, UI_CreateGame_Menu, menu_creategame_Shutdown );
 
+bool UI_MohaaPage_Menu( const char *name );
+
 void UI_CreateGame_Menu( void )
+{
+	// MOHAA's retail game type cards come first when the SD card has them (ui/multiplayerstart.urc);
+	// each card goes on to the form below
+	if( UI_MohaaPage_Menu( "gametype" ))
+		return;
+	UI_CreateGameForm_Menu();
+}
+
+void UI_CreateGameForm_Menu( void )
 {
 	menu_creategame_Precache();
 	menu_creategame->Show();
