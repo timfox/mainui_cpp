@@ -63,6 +63,7 @@ private:
 
 	CMenuYesNoMessageBox  msgBox;
 
+	CEventCallback storyCallback;
 	CEventCallback easyCallback;
 	CEventCallback normCallback;
 	CEventCallback hardCallback;
@@ -120,6 +121,10 @@ void CMenuNewGame::_Init( void )
 
 	banner.SetPicture( ART_BANNER );
 
+	// Skill 0: story mode below Easy, like Quake's skill 0.
+	storyCallback = StartGameCb;
+	storyCallback.pExtra = (void *)0;
+
 	easyCallback = StartGameCb;
 	easyCallback.pExtra = (void *)1;
 
@@ -131,7 +136,10 @@ void CMenuNewGame::_Init( void )
 
 #if XASH_GAMECUBE
 	/* Slim gc_menu strips — full btns_main atlas is skipped on GameCube.
-	 * Use alias-filled help strings (Play Half-Life on 'easy'…). */
+	 * Use alias-filled help strings (Play Half-Life on 'easy'…).
+	 * btn_story.tga is set from retail btns_main glyphs by the disc build. */
+	CMenuPicButton *story = AddButton( "Story", "Play Half-Life for the story: you take half damage and enemies are weaker",
+		"resource/gc_menu/btn_story.tga", storyCallback, QMF_NOTIFY, 's' );
 	CMenuPicButton *easy = AddButton( L( "GameUI_Easy" ), L( "StringsList_200" ),
 		"resource/gc_menu/btn_easy.tga", easyCallback, QMF_NOTIFY, 'e' );
 	CMenuPicButton *norm = AddButton( L( "GameUI_Medium" ), L( "StringsList_201" ),
@@ -140,14 +148,18 @@ void CMenuNewGame::_Init( void )
 		"resource/gc_menu/btn_hard.tga", hardCallback, QMF_NOTIFY, 'd' );
 	Con_Printf( "Xash3D GameCube: newgame difficulty strips init\n" );
 #else
+	CMenuPicButton *story = AddButton( "Story", "Play for the story: you take half damage and enemies are weaker",
+		"gfx/shell/btn_story", storyCallback, QMF_NOTIFY, 's' );
 	CMenuPicButton *easy = AddButton( L( "GameUI_Easy" ), L( "StringsList_200" ), PC_EASY, easyCallback, QMF_NOTIFY );
 	CMenuPicButton *norm = AddButton( L( "GameUI_Medium" ), L( "StringsList_201" ), PC_MEDIUM, normCallback, QMF_NOTIFY );
 	CMenuPicButton *hard = AddButton( L( "GameUI_Hard" ), L( "StringsList_202" ), PC_DIFFICULT, hardCallback, QMF_NOTIFY );
 #endif
 
-	easy->onReleasedClActive =
+	story->onReleasedClActive =
+		easy->onReleasedClActive =
 		norm->onReleasedClActive =
 		hard->onReleasedClActive = ShowDialogCb;
+	story->onReleasedClActive.pExtra = &storyCallback;
 	easy->onReleasedClActive.pExtra = &easyCallback;
 	norm->onReleasedClActive.pExtra = &normCallback;
 	hard->onReleasedClActive.pExtra = &hardCallback;
