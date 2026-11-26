@@ -12,6 +12,7 @@ retail pages) use them. Layout files come from mohaa-gc's converter (tools/mohaa
 #include "BaseItem.h"
 #include "Image.h"
 #include "keydefs.h"
+#include "BaseWindow.h"
 
 struct mohaaRect_t
 {
@@ -46,6 +47,13 @@ static inline void UI_MohaaRoomToScreen( const mohaaRect_t &r, int roomW, int ro
 }
 
 #define MOHAA_ROOM_NAV_REPEAT_MS 150
+
+// Only the menu on top loads its art. A closing menu still draws a few frames, and a covered one
+// keeps drawing under the page above it; neither should hold textures the GameCube needs.
+static inline bool UI_MohaaOnTop( const CMenuItemsHolder *parent )
+{
+	return parent && static_cast<const CMenuItemsHolder *>( uiStatic.menu.Current( )) == parent;
+}
 
 class CMenuMohaaSpot : public CMenuBaseItem
 {
@@ -112,6 +120,8 @@ public:
 
 		if( isButton )
 		{
+			if( !loaded && !UI_MohaaOnTop( m_pParent ))
+				return;
 			if( !loaded )
 			{
 				pic.Load( picPath );
@@ -123,7 +133,8 @@ public:
 		}
 
 		// A spot's art is only in memory while it is lit: one hover image and one sign at a time.
-		if( !focused )
+		// A closing or covered menu still draws a few frames: don't load art for it, let it go.
+		if( !focused || !UI_MohaaOnTop( m_pParent ))
 		{
 			if( loaded )
 			{
@@ -144,6 +155,15 @@ public:
 			UI_DrawPic( m_scPos, m_scSize, uiColorWhite, pic );
 		if( focusPic.IsValid( ) && signSize.w > 0 )
 			UI_DrawPic( signPos, signSize, uiColorWhite, focusPic );
+	}
+
+	void Unload( void )
+	{
+		if( !loaded )
+			return;
+		pic.ForceUnload();
+		focusPic.ForceUnload();
+		loaded = false;
 	}
 
 	bool isButton;

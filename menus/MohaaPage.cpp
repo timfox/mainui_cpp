@@ -62,6 +62,13 @@ public:
 
 	void Draw( void ) override
 	{
+		// Hide() takes the page off the stack and then it still draws while it closes: loading
+		// the picture again there kept its four CMPR tiles for good, and the next page went blurry.
+		if( !UI_MohaaOnTop( m_pParent ))
+		{
+			Unload();
+			return;
+		}
 		if( !loaded )
 		{
 			for( int i = 0; i < 4; i++ )
@@ -283,8 +290,12 @@ bool CMenuMohaaPage::KeyDown( int key )
 
 void CMenuMohaaPage::Hide( void )
 {
-	// The picture is 150 KiB of texture memory: give it back as the page goes.
+	// The picture is 150 KiB of texture memory, and the lit card up to 64 KiB: give them back as
+	// the page goes.
 	backdrop.Unload();
+	for( int i = 0; i < spotCount; i++ )
+		spots[i].Unload();
+	back.Unload();
 	BaseClass::Hide();
 }
 
